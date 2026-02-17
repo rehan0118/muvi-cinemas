@@ -1725,7 +1725,7 @@ function Invoke-QuickIde {
 function Invoke-QuickPortal {
     Write-Host "`n  Starting Developer Portal..." -ForegroundColor Cyan
 
-    $portalServer = Join-Path $ROOT "dev-portal" "server.js"
+    $portalServer = Join-Path (Join-Path $ROOT "dev-portal") "server.js"
     if (-not (Test-Path $portalServer)) {
         Write-Host "  [!] Portal server not found: $portalServer" -ForegroundColor Red
         return
@@ -1919,9 +1919,9 @@ try {
 
     # Start Developer Portal server and open in browser
     Write-Host "  Starting Developer Portal..." -ForegroundColor Cyan
-    $portalServer = Join-Path $ROOT "dev-portal" "server.js"
+    $portalServer = Join-Path (Join-Path $ROOT "dev-portal") "server.js"
     if (Test-Path $portalServer) {
-        Start-Process -FilePath "node" -ArgumentList $portalServer -WorkingDirectory $ROOT
+        Start-Process -FilePath "node" -ArgumentList "`"$portalServer`"" -WorkingDirectory $ROOT
         Start-Sleep -Seconds 2
         Start-Process "http://localhost:4000"
         Write-Host "  Developer Portal: http://localhost:4000" -ForegroundColor Green
