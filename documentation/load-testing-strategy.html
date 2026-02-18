@@ -1,0 +1,2085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Muvi Cinemas — Load Testing Strategy &amp; Implementation Guide</title>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-2: #334155;
+            --border: #475569;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #38bdf8;
+            --accent-2: #818cf8;
+            --green: #4ade80;
+            --yellow: #fbbf24;
+            --red: #f87171;
+            --orange: #fb923c;
+            --pink: #f472b6;
+            --cyan: #22d3ee;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            scroll-behavior: smooth;
+        }
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* ── Header ── */
+        header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #1e1b4b 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 3rem 2rem;
+            text-align: center;
+        }
+        header h1 {
+            font-size: 2.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2), var(--pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+        header .subtitle {
+            font-size: 1.15rem;
+            color: var(--text-muted);
+            max-width: 700px;
+            margin: 0 auto;
+        }
+        header .meta {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+        }
+        header .meta span {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 0.35rem 1rem;
+            border-radius: 999px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        /* ── Navigation ── */
+        nav {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 0 1rem;
+            overflow-x: auto;
+        }
+        nav ul {
+            display: flex;
+            list-style: none;
+            max-width: 1400px;
+            margin: 0 auto;
+            gap: 0;
+        }
+        nav a {
+            display: block;
+            padding: 0.85rem 1.1rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            white-space: nowrap;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        nav a:hover {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+            text-decoration: none;
+        }
+
+        /* ── Content ── */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        section {
+            margin-bottom: 4rem;
+        }
+        h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        h2 .num {
+            background: var(--accent);
+            color: var(--bg);
+            width: 2.2rem;
+            height: 2.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 1rem;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+        h3 {
+            font-size: 1.35rem;
+            font-weight: 600;
+            margin: 2rem 0 1rem;
+            color: var(--accent-2);
+        }
+        h4 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--cyan);
+        }
+        p { margin-bottom: 1rem; }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .card h4 { margin-top: 0; }
+
+        /* ── Tables ── */
+        .table-wrap {
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88rem;
+        }
+        th {
+            background: var(--surface-2);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 700;
+            color: var(--accent);
+            white-space: nowrap;
+            border-bottom: 2px solid var(--border);
+        }
+        td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid rgba(71, 85, 105, 0.4);
+            vertical-align: top;
+        }
+        tr:hover td { background: rgba(56, 189, 248, 0.04); }
+        .method-badge {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            font-weight: 700;
+            font-size: 0.75rem;
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+        }
+        .method-get { background: #065f46; color: #34d399; }
+        .method-post { background: #92400e; color: #fbbf24; }
+        .method-put { background: #1e40af; color: #60a5fa; }
+        .method-patch { background: #581c87; color: #c084fc; }
+        .method-delete { background: #7f1d1d; color: #fca5a5; }
+
+        /* ── Code ── */
+        code {
+            background: var(--surface-2);
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            font-family: 'Cascadia Code', 'Fira Code', monospace;
+            font-size: 0.85em;
+            color: var(--green);
+        }
+        pre {
+            background: #0c0f1a;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+            color: var(--text);
+        }
+        .comment { color: #6b7280; }
+        .keyword { color: var(--accent-2); }
+        .string { color: var(--green); }
+        .func { color: var(--yellow); }
+        .num { color: var(--orange); }
+
+        /* ── Badges & Tags ── */
+        .tag {
+            display: inline-block;
+            padding: 0.2rem 0.7rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .tag-critical { background: rgba(248, 113, 113, 0.2); color: var(--red); border: 1px solid rgba(248, 113, 113, 0.3); }
+        .tag-high { background: rgba(251, 146, 60, 0.2); color: var(--orange); border: 1px solid rgba(251, 146, 60, 0.3); }
+        .tag-medium { background: rgba(251, 191, 36, 0.2); color: var(--yellow); border: 1px solid rgba(251, 191, 36, 0.3); }
+        .tag-low { background: rgba(74, 222, 128, 0.2); color: var(--green); border: 1px solid rgba(74, 222, 128, 0.3); }
+
+        /* ── Stats Grid ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.25rem;
+            text-align: center;
+        }
+        .stat-card .value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent), var(--accent-2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* ── Timeline ── */
+        .timeline {
+            position: relative;
+            padding-left: 2.5rem;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 0.85rem;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, var(--accent), var(--accent-2), var(--pink));
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -1.88rem;
+            top: 0.4rem;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            border: 3px solid var(--bg);
+        }
+        .timeline-item h4 { margin-top: 0; }
+
+        /* ── Callouts ── */
+        .callout {
+            border-left: 4px solid;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0 8px 8px 0;
+        }
+        .callout-info { border-color: var(--accent); background: rgba(56, 189, 248, 0.08); }
+        .callout-warning { border-color: var(--yellow); background: rgba(251, 191, 36, 0.08); }
+        .callout-danger { border-color: var(--red); background: rgba(248, 113, 113, 0.08); }
+        .callout-success { border-color: var(--green); background: rgba(74, 222, 128, 0.08); }
+        .callout strong { display: block; margin-bottom: 0.25rem; }
+
+        /* ── Journey Flow ── */
+        .flow {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .flow-step {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            padding: 0.4rem 0.8rem;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .flow-arrow {
+            color: var(--accent);
+            font-size: 1.2rem;
+        }
+
+        /* ── FAQ ── */
+        details {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+        }
+        summary {
+            cursor: pointer;
+            padding: 1rem 1.25rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text);
+            list-style: none;
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+        }
+        summary::before {
+            content: '▸';
+            color: var(--accent);
+            transition: transform 0.2s;
+            flex-shrink: 0;
+            font-size: 1.1rem;
+        }
+        details[open] summary::before {
+            transform: rotate(90deg);
+        }
+        summary::-webkit-details-marker { display: none; }
+        details .answer {
+            padding: 0 1.25rem 1.25rem;
+            color: var(--text-muted);
+            line-height: 1.8;
+        }
+        details .answer p:last-child { margin-bottom: 0; }
+
+        /* ── Donut Chart ── */
+        .donut-container {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+        .donut-chart {
+            width: 220px;
+            height: 220px;
+        }
+        .donut-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.9rem;
+        }
+        .legend-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            header h1 { font-size: 1.8rem; }
+            .container { padding: 1rem; }
+            h2 { font-size: 1.5rem; }
+            nav a { padding: 0.7rem 0.8rem; font-size: 0.75rem; }
+        }
+        @media print {
+            nav { display: none; }
+            body { background: #fff; color: #111; }
+            .card, details { border-color: #ddd; }
+            header { background: #f8f8f8; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║            HEADER                     ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<header>
+    <h1>Muvi Cinemas — Load Testing Strategy</h1>
+    <p class="subtitle">A comprehensive guide to load testing the Muvi Cinemas digital platform for 40,000 concurrent users — from k6 scripts to AWS infrastructure.</p>
+    <div class="meta">
+        <span>📅 Prepared: June 2025</span>
+        <span>🎬 7 Microservices</span>
+        <span>🔗 481 API Endpoints</span>
+        <span>🌍 23 Third-party Integrations</span>
+        <span>👥 Target: 40K Users</span>
+    </div>
+</header>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║            NAVIGATION                 ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<nav>
+    <ul>
+        <li><a href="#executive-summary">Executive Summary</a></li>
+        <li><a href="#architecture">Architecture</a></li>
+        <li><a href="#why-load-test">Why Load Test</a></li>
+        <li><a href="#tool-choice">Tool: k6</a></li>
+        <li><a href="#user-journeys">User Journeys</a></li>
+        <li><a href="#mocking-strategy">Mocking Strategy</a></li>
+        <li><a href="#k6-concepts">k6 Concepts</a></li>
+        <li><a href="#execution-plan">Execution Plan</a></li>
+        <li><a href="#monitoring">Monitoring</a></li>
+        <li><a href="#infrastructure">Infrastructure</a></li>
+        <li><a href="#api-reference">API Reference</a></li>
+        <li><a href="#faq">FAQ</a></li>
+    </ul>
+</nav>
+
+<div class="container">
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     1. EXECUTIVE SUMMARY              ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section id="executive-summary">
+    <h2><span class="num">1</span> Executive Summary</h2>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="value">40K</div>
+            <div class="label">Target Concurrent Users</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">7</div>
+            <div class="label">Microservices</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">481</div>
+            <div class="label">API Endpoints</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">13</div>
+            <div class="label">External APIs to Mock</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">5</div>
+            <div class="label">User Journey Types</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">4</div>
+            <div class="label">Testing Stages</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h4>What is this document?</h4>
+        <p>This is the complete strategy and implementation guide for load-testing the Muvi Cinemas platform. It covers every aspect: <strong>why</strong> we need load testing, <strong>what</strong> tool to use, <strong>how</strong> to write the scripts, what external services to mock, how to ramp up from local testing to 40,000 concurrent users, and what infrastructure to provision.</p>
+        <p>The goal is to simulate 40,000 concurrent users interacting with the platform simultaneously — browsing films, booking tickets, ordering food, and managing accounts — to discover bottlenecks, breaking points, and performance limits <em>before</em> real traffic hits.</p>
+    </div>
+
+    <div class="callout callout-info">
+        <strong>Key Insight: Scripts First, Infrastructure Later</strong>
+        k6 scripts are infrastructure-independent — they're just JavaScript files making HTTP calls against a URL. Write the scripts first ($0 cost), test locally, then scale the infrastructure when you need higher user counts.
+    </div>
+</section>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     2. SYSTEM ARCHITECTURE             ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section id="architecture">
+    <h2><span class="num">2</span> System Architecture</h2>
+
+    <p>Understanding the architecture is critical for load testing because each layer is a potential bottleneck. Here's the full request flow:</p>
+
+    <div class="flow">
+        <span class="flow-step" style="border-color: var(--accent);">🌐 Client (Mobile/Web/Kiosk)</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step" style="border-color: var(--yellow);">⚡ CloudFront CDN</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step" style="border-color: var(--orange);">🔀 AWS ALB</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step" style="border-color: var(--green);">🚪 Gateway :3000</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step" style="border-color: var(--accent-2);">📡 gRPC</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step" style="border-color: var(--pink);">🔧 Backend Services</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step" style="border-color: var(--cyan);">🗄️ PostgreSQL / Redis</span>
+    </div>
+
+    <div class="card-grid">
+        <div class="card">
+            <h4>🚪 Gateway (NestJS 8.4, Port 3000)</h4>
+            <p>The <strong>only public entry point</strong>. All 481 HTTP endpoints live here. Proxies requests via gRPC to backend services. Handles authentication guards, rate limiting (100 req/60s default, 5 req/60s for orders).</p>
+            <p><strong>Load Testing Implication:</strong> Every single request hits the Gateway. This is bottleneck candidate #1.</p>
+        </div>
+        <div class="card">
+            <h4>🔐 Identity (NestJS 8.4, Port 5001)</h4>
+            <p>User registration, OTP authentication (via Unifonic/Taqnyat), JWT token management, CMS user management, roles &amp; permissions.</p>
+            <p><strong>Load Testing Implication:</strong> Auth is called on every authenticated request (JWT validation). OTP sending has rate limits.</p>
+        </div>
+        <div class="card">
+            <h4>🎬 Main (NestJS 8.4, Port 5002)</h4>
+            <p>Films, cinemas, sessions, seat maps, bookings, orders, Vista integration. The heaviest service with the most business logic (order.service.ts = 3,934 lines).</p>
+            <p><strong>Load Testing Implication:</strong> Booking flow is the most complex — sequential Vista calls, seat locking, timer management.</p>
+        </div>
+        <div class="card">
+            <h4>💳 Payment (NestJS 8.4, Port 5003)</h4>
+            <p>HyperPay, PayFort, Checkout.com, Tabby BNPL integration. Card management, wallet top-ups, refunds.</p>
+            <p><strong>Load Testing Implication:</strong> Must mock all gateways — can't process real payments during load tests.</p>
+        </div>
+        <div class="card">
+            <h4>🍔 F&B (NestJS 9.4, Port 5004)</h4>
+            <p>Food &amp; beverage ordering, concession items, kiosk management, menus. Uses NestJS 9.4 (others use 8.4).</p>
+            <p><strong>Load Testing Implication:</strong> Separate Vista integration for F&B orders. Version mismatch risk.</p>
+        </div>
+        <div class="card">
+            <h4>📱 Notification (NestJS 8.4, Port 5005)</h4>
+            <p>OneSignal push, Braze marketing, SendGrid email, SMS notifications. Mostly async via Bull queues.</p>
+            <p><strong>Load Testing Implication:</strong> Async — unlikely bottleneck but monitor queue depth.</p>
+        </div>
+        <div class="card">
+            <h4>🎫 Offer (Go 1.24, Port 5006)</h4>
+            <p>Promotions, vouchers, student discounts, offer rules. Only Go service in the stack.</p>
+            <p><strong>Load Testing Implication:</strong> Go is inherently faster. Lower risk but include in journey tests.</p>
+        </div>
+    </div>
+
+    <h3>Communication Patterns</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>Pattern</th><th>Technology</th><th>Used For</th><th>Load Test Concern</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Synchronous RPC</td><td>gRPC (HTTP/2)</td><td>All inter-service calls</td><td>Connection pool exhaustion at scale</td></tr>
+                <tr><td>Async Processing</td><td>Bull Queues (Redis)</td><td>Email, push, refund processing</td><td>Queue backlog under load</td></tr>
+                <tr><td>Real-time Events</td><td>Redis Pub/Sub</td><td>Payment status updates</td><td>Redis memory under high throughput</td></tr>
+                <tr><td>Caching</td><td>Redis 7</td><td>Session data, rate limits, film cache</td><td>Cache hit ratio degradation</td></tr>
+                <tr><td>Primary Storage</td><td>PostgreSQL 15</td><td>Per-service databases (6 DBs)</td><td>Connection pool limits, lock contention</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Infrastructure Topology (AWS)</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>Component</th><th>AWS Service</th><th>UAE UAT Region</th><th>Configuration</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Compute</td><td>ECS Fargate</td><td>me-central-1</td><td>Tasks scale per service (1-4 typical UAT)</td></tr>
+                <tr><td>Database</td><td>RDS PostgreSQL 15</td><td>me-central-1</td><td>Per-service DBs, connection limit ~100-200</td></tr>
+                <tr><td>Cache/Queue</td><td>ElastiCache Redis 7</td><td>me-central-1</td><td>Single node or small cluster</td></tr>
+                <tr><td>CDN</td><td>CloudFront</td><td>Global</td><td>Static assets, images</td></tr>
+                <tr><td>Storage</td><td>S3</td><td>me-central-1</td><td>Film images, PDFs, uploads</td></tr>
+                <tr><td>Load Balancer</td><td>ALB</td><td>me-central-1</td><td>Distributes to ECS tasks</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     3. WHY LOAD TEST                  ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section id="why-load-test">
+    <h2><span class="num">3</span> Why Load Test?</h2>
+
+    <div class="card">
+        <h4>The Real-World Scenario</h4>
+        <p>Muvi Cinemas operates across Saudi Arabia. When a blockbuster film opens (think Marvel, Saudi-exclusive releases), <strong>tens of thousands of users simultaneously</strong> flood the platform to book tickets. This creates a thundering herd problem where:</p>
+        <ul style="margin: 0.5rem 0 0 1.5rem;">
+            <li>Every user browses the same film → same DB queries hit simultaneously</li>
+            <li>Hundreds try to book the same showtime → seat locking contention</li>
+            <li>Payment processing creates real money operations → failure = refund chaos</li>
+            <li>Vista (external cinema system) can become the bottleneck → one slow response cascades</li>
+        </ul>
+    </div>
+
+    <h3>What Load Testing Discovers</h3>
+    <div class="card-grid">
+        <div class="card">
+            <h4 style="color: var(--red);">🔥 Breaking Points</h4>
+            <p>At what user count does the system start failing? Is it 5K? 15K? 30K? You <strong>cannot calculate this</strong> — bottlenecks are non-linear. A system handling 1K users perfectly might crash at 2K due to database connection pool exhaustion.</p>
+        </div>
+        <div class="card">
+            <h4 style="color: var(--yellow);">⚡ Performance Degradation</h4>
+            <p>Response times may grow exponentially, not linearly. A 200ms endpoint at 100 users might be 5,000ms at 10K users because of lock contention, N+1 queries, or Redis memory pressure.</p>
+        </div>
+        <div class="card">
+            <h4 style="color: var(--orange);">🔗 Cascade Failures</h4>
+            <p>Microservice architectures have cascading failure modes. If Vista takes 30s to respond instead of 300ms, every booking request queues up, exhausting Gateway connection pools, which blocks ALL endpoints — even film browsing.</p>
+        </div>
+        <div class="card">
+            <h4 style="color: var(--green);">✅ Configuration Limits</h4>
+            <p>PostgreSQL max_connections (default ~100), Redis maxmemory, ECS task CPU/memory, gRPC channel limits, Bull queue concurrency — all are configuration choices that set hard ceilings.</p>
+        </div>
+    </div>
+
+    <div class="callout callout-danger">
+        <strong>Why You Can't "Just Do Math"</strong>
+        <p>A common question: "If 1 server handles 1,000 users, can't we just multiply by 40 for 40K?" <strong>No.</strong> Bottlenecks are non-linear. Database locks don't scale linearly. Memory fragmentation compounds. Connection pools have hard limits. Network saturation creates back-pressure. The only way to know your actual limit is to <strong>test it</strong>.</p>
+    </div>
+</section>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     4. TOOL CHOICE: k6                ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section id="tool-choice">
+    <h2><span class="num">4</span> Tool Choice: k6</h2>
+
+    <h3>Why k6 Over Alternatives?</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>Tool</th><th>Language</th><th>Pros</th><th>Cons</th><th>Verdict</th></tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>k6</strong></td>
+                    <td>JavaScript</td>
+                    <td>Team already knows JS/TS, lightweight Go binary, built-in metrics, CLI-first</td>
+                    <td>No browser-level rendering, smaller ecosystem than JMeter</td>
+                    <td><span class="tag tag-critical">CHOSEN</span></td>
+                </tr>
+                <tr>
+                    <td>JMeter</td>
+                    <td>XML/Java</td>
+                    <td>Mature, GUI, many plugins</td>
+                    <td>Java overhead, XML configs, team doesn't know Java</td>
+                    <td><span class="tag tag-low">Skip</span></td>
+                </tr>
+                <tr>
+                    <td>Gatling</td>
+                    <td>Scala</td>
+                    <td>Excellent reports, good performance</td>
+                    <td>Scala learning curve, different paradigm</td>
+                    <td><span class="tag tag-low">Skip</span></td>
+                </tr>
+                <tr>
+                    <td>Locust</td>
+                    <td>Python</td>
+                    <td>Simple, distributed, Python</td>
+                    <td>Python's GIL limits single-machine throughput</td>
+                    <td><span class="tag tag-medium">Alternative</span></td>
+                </tr>
+                <tr>
+                    <td>Artillery</td>
+                    <td>YAML/JS</td>
+                    <td>YAML scenarios, JS plugins</td>
+                    <td>Node.js overhead, not as performant</td>
+                    <td><span class="tag tag-medium">Alternative</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout callout-success">
+        <strong>Decision Rationale</strong>
+        <p>k6 scripts are written in JavaScript — the exact same language the Muvi engineering team uses daily for NestJS development. Zero learning curve for the language. k6 itself is a single Go binary that's extremely resource-efficient compared to JMeter or Locust. One laptop running k6 can simulate thousands of concurrent connections.</p>
+    </div>
+
+    <h3>k6 at a Glance</h3>
+    <pre><code><span class="comment">// Install k6</span>
+<span class="comment">// Windows: choco install k6</span>
+<span class="comment">// macOS: brew install k6</span>
+<span class="comment">// Linux: https://dl.k6.io/</span>
+
+<span class="comment">// Run a test</span>
+k6 run load-test.js
+
+<span class="comment">// Run with 100 virtual users for 30 seconds</span>
+k6 run --vus 100 --duration 30s load-test.js
+
+<span class="comment">// Run with environment variable (target URL)</span>
+k6 run -e BASE_URL=https://uat-api.muvicinemas.com load-test.js</code></pre>
+</section>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     5. USER JOURNEYS                  ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section id="user-journeys">
+    <h2><span class="num">5</span> User Journeys &amp; Traffic Distribution</h2>
+
+    <p>Not all users do the same thing. A realistic load test mixes different user behaviors in the proportions that match real traffic. Here are the five journey types:</p>
+
+    <!-- Donut Chart -->
+    <div class="donut-container">
+        <svg class="donut-chart" viewBox="0 0 42 42">
+            <!-- Browser 50% -->
+            <circle r="15.915" cx="21" cy="21" fill="transparent" stroke="#38bdf8" stroke-width="5" stroke-dasharray="50 50" stroke-dashoffset="25"></circle>
+            <!-- Booker 15% -->
+            <circle r="15.915" cx="21" cy="21" fill="transparent" stroke="#f87171" stroke-width="5" stroke-dasharray="15 85" stroke-dashoffset="75"></circle>
+            <!-- Guest 15% -->
+            <circle r="15.915" cx="21" cy="21" fill="transparent" stroke="#fbbf24" stroke-width="5" stroke-dasharray="15 85" stroke-dashoffset="60"></circle>
+            <!-- Food 10% -->
+            <circle r="15.915" cx="21" cy="21" fill="transparent" stroke="#4ade80" stroke-width="5" stroke-dasharray="10 90" stroke-dashoffset="45"></circle>
+            <!-- CMS 5% -->
+            <circle r="15.915" cx="21" cy="21" fill="transparent" stroke="#c084fc" stroke-width="5" stroke-dasharray="5 95" stroke-dashoffset="35"></circle>
+            <!-- Account 5% -->
+            <circle r="15.915" cx="21" cy="21" fill="transparent" stroke="#fb923c" stroke-width="5" stroke-dasharray="5 95" stroke-dashoffset="30"></circle>
+        </svg>
+        <div class="donut-legend">
+            <div class="legend-item"><span class="legend-dot" style="background:#38bdf8"></span> <strong>Browser (50%)</strong> — Browse films, check showtimes, leave</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#f87171"></span> <strong>Booker (15%)</strong> — Full booking with payment</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#fbbf24"></span> <strong>Guest Booker (15%)</strong> — Book without account</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#4ade80"></span> <strong>Food Orderer (10%)</strong> — F&amp;B ordering from kiosk</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#c084fc"></span> <strong>CMS Admin (&lt;5%)</strong> — Admin operations</div>
+            <div class="legend-item"><span class="legend-dot" style="background:#fb923c"></span> <strong>Account Manager (5%)</strong> — Profile, cards, orders</div>
+        </div>
+    </div>
+
+    <!-- Journey #1: Browser -->
+    <h3>Journey 1: The Browser (50% of traffic)</h3>
+    <div class="card">
+        <p><strong>Who:</strong> Anonymous users browsing the platform. Most traffic. No login required.</p>
+        <p><strong>Behavior:</strong> Open app → browse films → check showtimes → look at cinema → leave.</p>
+        <div class="flow">
+            <span class="flow-step">GET /cities</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /banners</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /films</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /films/:id</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /films/:id/cinemas</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /showtimes</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /cinemas/:id</span>
+        </div>
+        <p><strong>Think time:</strong> 2-5 seconds between requests (simulates reading the page).</p>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>#</th><th>Method</th><th>Endpoint</th><th>Auth</th><th>Purpose</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td><span class="method-badge method-get">GET</span></td><td><code>/cities</code></td><td>None</td><td>Get list of cities (Riyadh, Jeddah, etc.)</td></tr>
+                <tr><td>2</td><td><span class="method-badge method-get">GET</span></td><td><code>/banners</code></td><td>None</td><td>Get homepage banners</td></tr>
+                <tr><td>3</td><td><span class="method-badge method-get">GET</span></td><td><code>/films</code></td><td>None</td><td>List all currently showing films</td></tr>
+                <tr><td>4</td><td><span class="method-badge method-get">GET</span></td><td><code>/films/:id</code></td><td>OptionalAuth</td><td>Get film details (cast, rating, showtimes)</td></tr>
+                <tr><td>5</td><td><span class="method-badge method-get">GET</span></td><td><code>/films/:id/cinemas</code></td><td>None</td><td>Cinemas showing this film</td></tr>
+                <tr><td>6</td><td><span class="method-badge method-get">GET</span></td><td><code>/showtimes</code></td><td>None</td><td>Available sessions for film+cinema</td></tr>
+                <tr><td>7</td><td><span class="method-badge method-get">GET</span></td><td><code>/showtimes/:id/seats</code></td><td>None</td><td>Seat map (optional — some browsers check)</td></tr>
+                <tr><td>8</td><td><span class="method-badge method-get">GET</span></td><td><code>/cinemas/:id</code></td><td>None</td><td>Cinema details &amp; map</td></tr>
+                <tr><td>9</td><td><span class="method-badge method-get">GET</span></td><td><code>/experiences</code></td><td>None</td><td>Available experiences (IMAX, 4DX, etc.)</td></tr>
+                <tr><td>10</td><td><span class="method-badge method-get">GET</span></td><td><code>/film-finder</code></td><td>None</td><td>Search/filter films</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Journey #2: Booker -->
+    <h3>Journey 2: The Booker (15% of traffic)</h3>
+    <div class="card">
+        <p><strong>Who:</strong> Authenticated users completing a full booking.</p>
+        <p><strong>Behavior:</strong> Login → browse → select film → pick seats → pay → receive confirmation.</p>
+        <p><strong>Criticality:</strong> <span class="tag tag-critical">CRITICAL</span> — This is the money flow. Failed bookings = lost revenue.</p>
+        <div class="flow">
+            <span class="flow-step">POST /auth/send-otp</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">POST /auth/verify-otp</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">Browse (same as Journey 1)</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /showtimes/:id/seats</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">POST /orders</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">POST /orders/:id/seats</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">POST /orders/:id/pay</span>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>#</th><th>Method</th><th>Endpoint</th><th>Auth</th><th>Purpose</th><th>External Call</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td><span class="method-badge method-post">POST</span></td><td><code>/auth/send-otp</code></td><td>Rate-limited</td><td>Request OTP to phone</td><td>Unifonic / Taqnyat</td></tr>
+                <tr><td>2</td><td><span class="method-badge method-post">POST</span></td><td><code>/auth/verify-otp</code></td><td>None</td><td>Verify OTP → get JWT</td><td>Unifonic / Taqnyat</td></tr>
+                <tr><td>3-8</td><td colspan="5"><em>Same as Browser journey (GET /cities, /banners, /films, /films/:id, /showtimes, /showtimes/:id/seats)</em></td></tr>
+                <tr><td>9</td><td><span class="method-badge method-post">POST</span></td><td><code>/orders</code></td><td>OptionalAuth + Throttled</td><td>Initialize order</td><td><strong>Vista: POST /orders/</strong></td></tr>
+                <tr><td>10</td><td><span class="method-badge method-post">POST</span></td><td><code>/orders/:id/seats</code></td><td>Throttled</td><td>Reserve seats</td><td><strong>Vista: POST /orders/{sid}/sessions/{sid}/set-tickets/</strong></td></tr>
+                <tr><td>11</td><td><span class="method-badge method-get">GET</span></td><td><code>/offers</code></td><td>None</td><td>Check available offers</td><td>Offer service (Go)</td></tr>
+                <tr><td>12</td><td><span class="method-badge method-get">GET</span></td><td><code>/cards</code></td><td>AuthGuard</td><td>Get saved cards</td><td>—</td></tr>
+                <tr><td>13</td><td><span class="method-badge method-post">POST</span></td><td><code>/orders/:id/pay</code></td><td>AuthGuard</td><td>Process payment</td><td><strong>HyperPay/PayFort/Checkout + Vista: order/payment</strong></td></tr>
+                <tr><td>14</td><td><span class="method-badge method-get">GET</span></td><td><code>/orders/:id</code></td><td>AuthGuard</td><td>Get booking confirmation</td><td>—</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout callout-warning">
+        <strong>Booking Flow — Sequential Dependency Chain</strong>
+        <p>Steps 9→10→13 are <strong>strictly sequential</strong> — you can't set seats before creating an order, and you can't pay before seats are set. Each step also calls Vista (external) which adds latency. This chain is where most performance issues surface.</p>
+    </div>
+
+    <!-- Journey #3: Guest -->
+    <h3>Journey 3: The Guest Booker (15% of traffic)</h3>
+    <div class="card">
+        <p><strong>Who:</strong> Users booking without an account (guest checkout).</p>
+        <p><strong>Behavior:</strong> Browse → create guest session → select seats → pay.</p>
+        <div class="flow">
+            <span class="flow-step">POST /guest-users</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">Browse films</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">POST /orders</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">POST /orders/:id/seats</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">POST /guest-users/cards/hyper-pay/initialize-add-card</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">POST /guest-users/orders/:id/pay</span>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>#</th><th>Method</th><th>Endpoint</th><th>Auth</th><th>Purpose</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td><span class="method-badge method-post">POST</span></td><td><code>/guest-users</code></td><td>None</td><td>Create guest session (name, email, phone)</td></tr>
+                <tr><td>2-6</td><td colspan="4"><em>Browse films (same as Journey 1)</em></td></tr>
+                <tr><td>7</td><td><span class="method-badge method-post">POST</span></td><td><code>/orders</code></td><td>OptionalAuth</td><td>Initialize order for guest</td></tr>
+                <tr><td>8</td><td><span class="method-badge method-post">POST</span></td><td><code>/orders/:id/seats</code></td><td>Throttled</td><td>Reserve seats</td></tr>
+                <tr><td>9</td><td><span class="method-badge method-post">POST</span></td><td><code>/guest-users/cards/hyper-pay/initialize-add-card</code></td><td>GuestGuard</td><td>Initialize card for payment</td></tr>
+                <tr><td>10</td><td><span class="method-badge method-post">POST</span></td><td><code>/guest-users/orders/:id/pay</code></td><td>GuestGuard</td><td>Process payment</td></tr>
+                <tr><td>11</td><td><span class="method-badge method-get">GET</span></td><td><code>/guest-users/orders/:id</code></td><td>GuestGuard</td><td>View booking confirmation</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Journey #4: Food Orderer -->
+    <h3>Journey 4: The Food Orderer (10% of traffic)</h3>
+    <div class="card">
+        <p><strong>Who:</strong> Users ordering food via kiosk or in-seat delivery.</p>
+        <p><strong>Behavior:</strong> Kiosk auth → browse menu → add items → pay.</p>
+        <div class="flow">
+            <span class="flow-step">POST /kiosks/setup</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /kiosk/concession-tabs</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /kiosk/concession-tabs/:id/concession-items</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">POST /fb/orders/initiate</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">POST /fb/orders/:id/concessions</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">POST /fb/orders/:id/complete</span>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>#</th><th>Method</th><th>Endpoint</th><th>Auth</th><th>Purpose</th><th>External Call</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td><span class="method-badge method-post">POST</span></td><td><code>/kiosks/setup</code></td><td>None</td><td>Initialize kiosk device</td><td>—</td></tr>
+                <tr><td>2</td><td><span class="method-badge method-get">GET</span></td><td><code>/kiosks/config</code></td><td>None</td><td>Get kiosk configuration</td><td>—</td></tr>
+                <tr><td>3</td><td><span class="method-badge method-get">GET</span></td><td><code>/kiosk/concession-tabs</code></td><td>KioskGuard</td><td>Get food categories</td><td>—</td></tr>
+                <tr><td>4</td><td><span class="method-badge method-get">GET</span></td><td><code>/kiosk/concession-tabs/:id/concession-items</code></td><td>KioskGuard</td><td>Get items in category</td><td>—</td></tr>
+                <tr><td>5</td><td><span class="method-badge method-get">GET</span></td><td><code>/kiosk/concession-items/suggestions</code></td><td>KioskGuard</td><td>Suggested add-ons</td><td>—</td></tr>
+                <tr><td>6</td><td><span class="method-badge method-post">POST</span></td><td><code>/fb/orders/initiate</code></td><td>KioskGuard</td><td>Create F&amp;B order</td><td><strong>Vista: POST /orders</strong></td></tr>
+                <tr><td>7</td><td><span class="method-badge method-post">POST</span></td><td><code>/fb/orders/:id/concessions</code></td><td>OptionalAuth</td><td>Set concession items</td><td><strong>Vista: POST /order/concessions</strong></td></tr>
+                <tr><td>8</td><td><span class="method-badge method-post">POST</span></td><td><code>/fb/orders/:id/complete</code></td><td>KioskGuard</td><td>Complete &amp; pay</td><td><strong>Vista: POST /order/payment</strong></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Journey #5: CMS Admin -->
+    <h3>Journey 5: CMS Admin (&lt;5% of traffic)</h3>
+    <div class="card">
+        <p><strong>Who:</strong> Internal staff managing the platform via CMS.</p>
+        <p><strong>Behavior:</strong> Login → manage films → view orders → check analytics.</p>
+        <p><strong>Note:</strong> Low volume but tests CMS auth paths and admin query performance under load.</p>
+        <div class="flow">
+            <span class="flow-step">POST /cms/auth/login</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /cms/films</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /cms/orders</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /cms/transactions</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /cms/users</span>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>#</th><th>Method</th><th>Endpoint</th><th>Auth</th><th>Purpose</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td><span class="method-badge method-post">POST</span></td><td><code>/cms/auth/login</code></td><td>None</td><td>CMS login (email + password)</td></tr>
+                <tr><td>2</td><td><span class="method-badge method-get">GET</span></td><td><code>/cms/films</code></td><td>AuthGuard</td><td>List all films (paginated)</td></tr>
+                <tr><td>3</td><td><span class="method-badge method-get">GET</span></td><td><code>/cms/orders</code></td><td>AuthGuard</td><td>List orders table</td></tr>
+                <tr><td>4</td><td><span class="method-badge method-get">GET</span></td><td><code>/cms/transactions</code></td><td>AuthGuard</td><td>Payment transactions</td></tr>
+                <tr><td>5</td><td><span class="method-badge method-get">GET</span></td><td><code>/cms/users</code></td><td>AuthGuard</td><td>User management list</td></tr>
+                <tr><td>6</td><td><span class="method-badge method-get">GET</span></td><td><code>/cms/sessions</code></td><td>AuthGuard</td><td>Cinema sessions management</td></tr>
+                <tr><td>7</td><td><span class="method-badge method-get">GET</span></td><td><code>/cms/orders/most-visited</code></td><td>AuthGuard</td><td>Analytics — most-visited films</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Journey #6: Account Manager -->
+    <h3>Journey 6: Account Manager (5% of traffic)</h3>
+    <div class="card">
+        <p><strong>Who:</strong> Logged-in users managing their account — viewing past orders, managing cards, topping up wallet.</p>
+        <div class="flow">
+            <span class="flow-step">POST /auth/verify-otp</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /users/me</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /orders</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /cards</span>
+            <span class="flow-arrow">→</span>
+            <span class="flow-step">GET /notifications</span>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>#</th><th>Method</th><th>Endpoint</th><th>Auth</th><th>Purpose</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td><span class="method-badge method-post">POST</span></td><td><code>/auth/send-otp</code></td><td>Rate-limited</td><td>Login OTP</td></tr>
+                <tr><td>2</td><td><span class="method-badge method-post">POST</span></td><td><code>/auth/verify-otp</code></td><td>None</td><td>Get JWT tokens</td></tr>
+                <tr><td>3</td><td><span class="method-badge method-get">GET</span></td><td><code>/users/me</code></td><td>AuthGuard</td><td>Get profile</td></tr>
+                <tr><td>4</td><td><span class="method-badge method-get">GET</span></td><td><code>/orders</code></td><td>AuthGuard</td><td>List past bookings</td></tr>
+                <tr><td>5</td><td><span class="method-badge method-get">GET</span></td><td><code>/orders/:id</code></td><td>AuthGuard</td><td>Booking details</td></tr>
+                <tr><td>6</td><td><span class="method-badge method-get">GET</span></td><td><code>/cards</code></td><td>AuthGuard</td><td>Saved payment cards</td></tr>
+                <tr><td>7</td><td><span class="method-badge method-get">GET</span></td><td><code>/notifications</code></td><td>AuthGuard</td><td>Notification inbox</td></tr>
+                <tr><td>8</td><td><span class="method-badge method-put">PUT</span></td><td><code>/notifications/:id/make-read</code></td><td>AuthGuard</td><td>Mark notification read</td></tr>
+                <tr><td>9</td><td><span class="method-badge method-post">POST</span></td><td><code>/top-ups</code></td><td>AuthGuard + Verified</td><td>Initialize wallet top-up</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     6. MOCKING STRATEGY               ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section id="mocking-strategy">
+    <h2><span class="num">6</span> Mocking Strategy</h2>
+
+    <div class="callout callout-danger">
+        <strong>Why Mocking is Non-Negotiable</strong>
+        <p>During a 40K-user load test, the system would attempt to create <strong>~6,000 real bookings</strong> in Vista and process <strong>~6,000 real payments</strong>. This would: (1) create thousands of phantom bookings in the cinema system, (2) process real credit card charges, (3) overwhelm SMS providers with OTPs, and (4) get rate-limited/banned by payment gateways. We must mock all external services.</p>
+    </div>
+
+    <h3>External Services Inventory</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>External System</th><th>Protocol</th><th># Endpoints</th><th>Priority</th><th>Mock Approach</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Vista Entertainment</strong></td><td>REST/OData HTTPS</td><td>~20 URL patterns</td><td><span class="tag tag-critical">CRITICAL</span></td><td>Full mock server</td></tr>
+                <tr><td><strong>HyperPay</strong></td><td>REST (form-encoded)</td><td>4 URL patterns</td><td><span class="tag tag-high">HIGH</span></td><td>Full mock server</td></tr>
+                <tr><td><strong>PayFort</strong></td><td>REST (command-based)</td><td>1 URL (4 commands)</td><td><span class="tag tag-high">HIGH</span></td><td>Full mock server</td></tr>
+                <tr><td><strong>Checkout.com</strong></td><td>SDK → REST</td><td>6 resource paths</td><td><span class="tag tag-high">HIGH</span></td><td>Full mock server</td></tr>
+                <tr><td><strong>Tabby</strong></td><td>REST</td><td>3 URL patterns</td><td><span class="tag tag-high">HIGH</span></td><td>Full mock server</td></tr>
+                <tr><td><strong>Unifonic (SMS)</strong></td><td>REST</td><td>2 URL patterns</td><td><span class="tag tag-medium">MEDIUM</span></td><td>Auto-verify OTP in test mode</td></tr>
+                <tr><td><strong>Taqnyat (SMS)</strong></td><td>REST</td><td>1 URL pattern</td><td><span class="tag tag-medium">MEDIUM</span></td><td>Auto-verify OTP in test mode</td></tr>
+                <tr><td><strong>OneSignal</strong></td><td>SDK → REST</td><td>1 endpoint</td><td><span class="tag tag-low">LOW</span></td><td>Disable or no-op</td></tr>
+                <tr><td><strong>Braze</strong></td><td>REST</td><td>2 URL patterns</td><td><span class="tag tag-low">LOW</span></td><td>Disable or no-op</td></tr>
+                <tr><td><strong>SendGrid</strong></td><td>SDK → REST</td><td>1 endpoint</td><td><span class="tag tag-low">LOW</span></td><td>Disable or no-op</td></tr>
+                <tr><td><strong>NearPay (POS)</strong></td><td>REST</td><td>1 URL pattern</td><td><span class="tag tag-low">LOW</span></td><td>Simple mock</td></tr>
+                <tr><td><strong>Avius (Surveys)</strong></td><td>REST</td><td>3 URL patterns</td><td><span class="tag tag-low">LOW</span></td><td>Disable or no-op</td></tr>
+                <tr><td><strong>ZATCA (Tax)</strong></td><td>Local library</td><td>0 (generates QR)</td><td><span class="tag tag-low">NONE</span></td><td>No mock needed</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Vista Mock Detail -->
+    <h3>Vista Entertainment — Complete Mock Specification</h3>
+    <p>Vista is the single most critical external dependency. Every booking, seat selection, and order completion calls Vista. Here's every endpoint that must be mocked:</p>
+
+    <h4>Main Service Vista Calls (Booking Flow)</h4>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>#</th><th>Method</th><th>URL Pattern</th><th>Purpose</th><th>Mock Response</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td><span class="method-badge method-post">POST</span></td><td><code>/orders/</code></td><td>Initialize order (returns userSessionId)</td><td>Return random session ID + 15min expiry</td></tr>
+                <tr><td>2</td><td><span class="method-badge method-post">POST</span></td><td><code>/orders/{sid}/sessions/{sid}/set-tickets/</code></td><td>Reserve seats in Vista</td><td>Return success + order total</td></tr>
+                <tr><td>3</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTTicketing.svc/order/payment</code></td><td>Confirm payment in Vista</td><td>Return booking number + barcode</td></tr>
+                <tr><td>4</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTTicketing.svc/order/cancel</code></td><td>Cancel unpaid order</td><td>Return success</td></tr>
+                <tr><td>5</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTTicketing.svc/order/continue</code></td><td>Restart expired session</td><td>Return new expiry time</td></tr>
+                <tr><td>6</td><td><span class="method-badge method-get">GET</span></td><td><code>/RESTData.svc/cinemas/{id}/sessions/{id}/seat-plan</code></td><td>Get seat layout</td><td>Return static seat map JSON</td></tr>
+                <tr><td>7</td><td><span class="method-badge method-get">GET</span></td><td><code>/RESTData.svc/cinemas/{id}/sessions/{id}/tickets</code></td><td>Available ticket types</td><td>Return ticket type list</td></tr>
+                <tr><td>8</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTBooking.svc/booking</code></td><td>Get booking details</td><td>Return booking object</td></tr>
+                <tr><td>9</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTBooking.svc/booking/search</code></td><td>Search bookings by member</td><td>Return booking list</td></tr>
+                <tr><td>10</td><td><span class="method-badge method-post">POST</span></td><td><code>/cinemas/{id}/bookings/{id}/refund</code></td><td>Refund a booking</td><td>Return refund confirmation</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h4>Identity Service Vista Calls (Loyalty)</h4>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>#</th><th>Method</th><th>URL Pattern</th><th>Purpose</th><th>Mock Response</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTLoyalty.svc/member/search</code></td><td>Search member by phone/email</td><td>Return member or empty</td></tr>
+                <tr><td>2</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTLoyalty.svc/member/create</code></td><td>Create loyalty member</td><td>Return new member ID</td></tr>
+                <tr><td>3</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTLoyalty.svc/member/update</code></td><td>Update member profile</td><td>Return success</td></tr>
+                <tr><td>4</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTLoyalty.svc/member/delete</code></td><td>Delete member</td><td>Return success</td></tr>
+                <tr><td>5</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTLoyalty.svc/member/validate</code></td><td>Validate & get session token</td><td>Return session token</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h4>F&B Service Vista Calls (Concessions)</h4>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>#</th><th>Method</th><th>URL Pattern</th><th>Purpose</th><th>Mock Response</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td><span class="method-badge method-post">POST</span></td><td><code>/orders</code></td><td>Create F&B order</td><td>Return session ID</td></tr>
+                <tr><td>2</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTTicketing.svc/order/concessions</code></td><td>Add concession items</td><td>Return updated order</td></tr>
+                <tr><td>3</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTTicketing.svc/order/payment</code></td><td>Complete FB payment</td><td>Return booking number</td></tr>
+                <tr><td>4</td><td><span class="method-badge method-post">POST</span></td><td><code>/RESTBooking.svc/booking/markcollected</code></td><td>Mark order collected</td><td>Return success</td></tr>
+                <tr><td>5</td><td><span class="method-badge method-get">GET</span></td><td><code>/RESTData.svc/concession-items-grouped-by-tabs?cinemaId=</code></td><td>Get concession menu</td><td>Return item list</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h4>OData Queries (Sync/Cron)</h4>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>#</th><th>Method</th><th>URL Pattern</th><th>Purpose</th><th>Mock Response</th></tr></thead>
+            <tbody>
+                <tr><td>1</td><td><span class="method-badge method-get">GET</span></td><td><code>/OData.svc/Sessions?$filter=SeatsAvailable eq 0</code></td><td>Sold-out sessions</td><td>Return empty or sample data</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Payment Mocks -->
+    <h3>Payment Gateway Mocks</h3>
+
+    <h4>HyperPay</h4>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Method</th><th>URL Pattern</th><th>Purpose</th><th>Mock Response</th></tr></thead>
+            <tbody>
+                <tr><td><span class="method-badge method-post">POST</span></td><td><code>/checkouts</code></td><td>Create checkout session</td><td>Return <code>{ id: "checkout-{uuid}", result: { code: "000.200.100" } }</code></td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/checkouts/{id}/registration</code></td><td>Get registered card</td><td>Return card details with registration.id</td></tr>
+                <tr><td><span class="method-badge method-post">POST</span></td><td><code>/registrations/{id}/payments</code></td><td>Charge card</td><td>Return <code>{ id: "pay-{uuid}", result: { code: "000.100.110" } }</code> (success)</td></tr>
+                <tr><td><span class="method-badge method-post">POST</span></td><td><code>/payments/{id}</code></td><td>Refund</td><td>Return refund confirmation</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/payments/{id}</code></td><td>Payment status</td><td>Return status with result code</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h4>PayFort (Amazon Payment Services)</h4>
+    <div class="card">
+        <p>PayFort uses a <strong>single URL</strong> for all operations, distinguished by command fields. All mocking goes through one endpoint:</p>
+        <p><code>POST {BASE_URL}</code> — route by <code>command</code> or <code>service_command</code> field:</p>
+        <ul style="margin: 0.5rem 0 0 1.5rem;">
+            <li><code>command: PURCHASE</code> → Return payment success (response_code: 14000)</li>
+            <li><code>command: REFUND</code> → Return refund success</li>
+            <li><code>query_command: CHECK_STATUS</code> → Return transaction status</li>
+            <li><code>service_command: UPDATE_TOKEN</code> → Return card info</li>
+        </ul>
+    </div>
+
+    <h4>Checkout.com</h4>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>SDK Method</th><th>REST Endpoint</th><th>Purpose</th><th>Mock Response</th></tr></thead>
+            <tbody>
+                <tr><td><code>cko.payments.request()</code></td><td><code>POST /payments</code></td><td>Create payment</td><td>Return <code>{ id: "pay_{uuid}", status: "Authorized" }</code></td></tr>
+                <tr><td><code>cko.payments.get()</code></td><td><code>GET /payments/{id}</code></td><td>Get payment</td><td>Return payment object with status</td></tr>
+                <tr><td><code>cko.payments.refund()</code></td><td><code>POST /payments/{id}/refunds</code></td><td>Refund</td><td>Return refund action ID</td></tr>
+                <tr><td><code>cko.tokens.request()</code></td><td><code>POST /tokens</code></td><td>Tokenize card/Apple Pay</td><td>Return token string</td></tr>
+                <tr><td><code>cko.customers.create()</code></td><td><code>POST /customers</code></td><td>Create customer</td><td>Return customer ID</td></tr>
+                <tr><td><code>cko.instruments.create()</code></td><td><code>POST /instruments</code></td><td>Save card</td><td>Return instrument ID</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h4>Tabby (Buy Now Pay Later)</h4>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Method</th><th>URL Pattern</th><th>Purpose</th><th>Mock Response</th></tr></thead>
+            <tbody>
+                <tr><td><span class="method-badge method-post">POST</span></td><td><code>/checkout</code></td><td>Create BNPL session</td><td>Return <code>{ id: "tabby-{uuid}", status: "created" }</code></td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/payments/{id}</code></td><td>Payment status</td><td>Return <code>{ status: "AUTHORIZED" }</code></td></tr>
+                <tr><td><span class="method-badge method-post">POST</span></td><td><code>/payments/{id}/captures</code></td><td>Capture payment</td><td>Return capture confirmation</td></tr>
+                <tr><td><span class="method-badge method-post">POST</span></td><td><code>/payments/{id}/refunds</code></td><td>Refund</td><td>Return refund confirmation</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Mock Implementation Approach</h3>
+    <div class="card">
+        <h4>Option A: Environment Variable URL Swap (Recommended)</h4>
+        <p>Each external service URL comes from environment config (AWS SSM in prod, .env locally). For load testing, point these URLs at a mock server:</p>
+        <pre><code><span class="comment"># .env.loadtest</span>
+VISTA_API_URL=<span class="string">http://mock-server:3100/vista</span>
+HYPER_PAY_BASE_URL=<span class="string">http://mock-server:3100/hyperpay</span>
+PAYFORT_BASE_URL=<span class="string">http://mock-server:3100/payfort</span>
+CHECKOUT_SECRET_KEY=<span class="string">sk_test_loadtest_key</span>
+TABBY_BASE_URL=<span class="string">http://mock-server:3100/tabby</span>
+UNIFONIC_URL=<span class="string">http://mock-server:3100/unifonic</span>
+</code></pre>
+        <p><strong>Pros:</strong> Zero code changes to production services. Easily switch back.</p>
+        <p><strong>Cons:</strong> Need to build and maintain mock server.</p>
+    </div>
+
+    <div class="card">
+        <h4>Option B: In-code Test Mode Flag</h4>
+        <p>Add a <code>LOAD_TEST_MODE=true</code> flag that short-circuits external calls:</p>
+        <pre><code><span class="keyword">if</span> (process.env.LOAD_TEST_MODE === <span class="string">'true'</span>) {
+  <span class="keyword">return</span> { bookingId: <span class="func">generateMockBookingId</span>(), status: <span class="string">'success'</span> };
+}
+<span class="comment">// Normal Vista call below...</span>
+</code></pre>
+        <p><strong>Pros:</strong> Simpler — no external mock server needed.</p>
+        <p><strong>Cons:</strong> Skips HTTP overhead and serialization. Less realistic. Risk of flag leaking to production.</p>
+    </div>
+
+    <div class="callout callout-info">
+        <strong>Recommended: Option A (URL Swap)</strong>
+        <p>Option A gives the most realistic test because the services still make real HTTP calls — they just go to a mock server instead of Vista/HyperPay. This tests the full HTTP serialization, network roundtrip, and error handling paths.</p>
+    </div>
+</section>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     7. k6 CONCEPTS DEEP DIVE          ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section id="k6-concepts">
+    <h2><span class="num">7</span> k6 Concepts — From Zero to Load Test</h2>
+
+    <!-- Concept 1: Basics -->
+    <h3>Concept 1: Virtual Users (VUs) &amp; Iterations</h3>
+    <div class="card">
+        <p>A <strong>Virtual User (VU)</strong> is a simulated user that runs your test script repeatedly. k6 creates thousands of VUs on a single machine — each with its own HTTP connection, cookies, and state.</p>
+        <pre><code><span class="keyword">import</span> http <span class="keyword">from</span> <span class="string">'k6/http'</span>;
+<span class="keyword">import</span> { sleep } <span class="keyword">from</span> <span class="string">'k6'</span>;
+
+<span class="comment">// This is called once per "iteration" per VU</span>
+<span class="keyword">export default function</span> () {
+  http.<span class="func">get</span>(<span class="string">'http://localhost:3000/films'</span>);
+  <span class="func">sleep</span>(<span class="num">1</span>); <span class="comment">// Think time — simulates reading the page</span>
+}
+
+<span class="comment">// Options determine how many VUs and how long</span>
+<span class="keyword">export const</span> options = {
+  vus: <span class="num">10</span>,        <span class="comment">// 10 simulated users</span>
+  duration: <span class="string">'30s'</span>, <span class="comment">// Run for 30 seconds</span>
+};
+</code></pre>
+        <p><strong>Key insight:</strong> Each VU is a separate "thread" with its own connection pool. 10 VUs making requests with 1s sleep ≈ 10 requests/second.</p>
+    </div>
+
+    <!-- Concept 2: Response chaining -->
+    <h3>Concept 2: Response Chaining (Using Response Data)</h3>
+    <div class="card">
+        <p>Real user journeys depend on data from previous requests. You must extract IDs, tokens, and values from responses to use in subsequent calls:</p>
+        <pre><code><span class="keyword">import</span> http <span class="keyword">from</span> <span class="string">'k6/http'</span>;
+
+<span class="keyword">export default function</span> () {
+  <span class="comment">// Step 1: Get list of films</span>
+  <span class="keyword">const</span> filmsRes = http.<span class="func">get</span>(<span class="string">'http://localhost:3000/films'</span>);
+  <span class="keyword">const</span> films = filmsRes.<span class="func">json</span>().data;
+
+  <span class="comment">// Step 2: Pick a random film</span>
+  <span class="keyword">const</span> film = films[Math.<span class="func">floor</span>(Math.<span class="func">random</span>() * films.length)];
+
+  <span class="comment">// Step 3: Use that film's ID in next request</span>
+  <span class="keyword">const</span> filmRes = http.<span class="func">get</span>(<span class="string">`http://localhost:3000/films/</span>${film.id}<span class="string">`</span>);
+
+  <span class="comment">// Step 4: Get cinemas for that film</span>
+  http.<span class="func">get</span>(<span class="string">`http://localhost:3000/films/</span>${film.id}<span class="string">/cinemas`</span>);
+}
+</code></pre>
+    </div>
+
+    <!-- Concept 3: Auth -->
+    <h3>Concept 3: Authentication — Handling JWTs</h3>
+    <div class="card">
+        <p>Authenticated endpoints require a JWT token. Each VU must authenticate first, then carry the token in all subsequent requests:</p>
+        <pre><code><span class="keyword">import</span> http <span class="keyword">from</span> <span class="string">'k6/http'</span>;
+
+<span class="comment">// setup() runs ONCE before all VUs start</span>
+<span class="keyword">export function</span> <span class="func">setup</span>() {
+  <span class="comment">// Pre-generate tokens for all VUs</span>
+  <span class="comment">// (or create test users in advance)</span>
+  <span class="keyword">return</span> { baseUrl: <span class="string">'http://localhost:3000'</span> };
+}
+
+<span class="keyword">export default function</span> (data) {
+  <span class="comment">// Each VU authenticates</span>
+  <span class="keyword">const</span> otpRes = http.<span class="func">post</span>(<span class="string">`</span>${data.baseUrl}<span class="string">/auth/send-otp`</span>, 
+    JSON.<span class="func">stringify</span>({ phone: <span class="string">`+96650000</span>${__VU}<span class="string">`</span> }),
+    { headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> } }
+  );
+
+  <span class="comment">// In test environment, OTP can be auto-verified or use fixed code</span>
+  <span class="keyword">const</span> authRes = http.<span class="func">post</span>(<span class="string">`</span>${data.baseUrl}<span class="string">/auth/verify-otp`</span>,
+    JSON.<span class="func">stringify</span>({ phone: <span class="string">`+96650000</span>${__VU}<span class="string">`</span>, code: <span class="string">'1234'</span> }),
+    { headers: { <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span> } }
+  );
+
+  <span class="keyword">const</span> token = authRes.<span class="func">json</span>().accessToken;
+
+  <span class="comment">// Use token in all subsequent requests</span>
+  <span class="keyword">const</span> headers = {
+    <span class="string">'Content-Type'</span>: <span class="string">'application/json'</span>,
+    <span class="string">'Authorization'</span>: <span class="string">`Bearer </span>${token}<span class="string">`</span>,
+  };
+
+  http.<span class="func">get</span>(<span class="string">`</span>${data.baseUrl}<span class="string">/orders`</span>, { headers });
+}
+</code></pre>
+        <p><strong>Note:</strong> <code>__VU</code> is a built-in k6 variable — the current virtual user number (1, 2, 3...). Useful for generating unique test data per user.</p>
+    </div>
+
+    <!-- Concept 4: Checks -->
+    <h3>Concept 4: Checks &amp; Thresholds (Pass/Fail Criteria)</h3>
+    <div class="card">
+        <p>Checks validate response correctness. Thresholds define SLA requirements — the test <strong>fails</strong> if thresholds are breached:</p>
+        <pre><code><span class="keyword">import</span> http <span class="keyword">from</span> <span class="string">'k6/http'</span>;
+<span class="keyword">import</span> { check } <span class="keyword">from</span> <span class="string">'k6'</span>;
+
+<span class="keyword">export const</span> options = {
+  thresholds: {
+    <span class="string">'http_req_duration'</span>: [<span class="string">'p(95)&lt;500'</span>],    <span class="comment">// 95% of requests under 500ms</span>
+    <span class="string">'http_req_failed'</span>:   [<span class="string">'rate&lt;0.01'</span>],    <span class="comment">// Less than 1% error rate</span>
+    <span class="string">'checks'</span>:            [<span class="string">'rate>0.95'</span>],    <span class="comment">// 95% of checks must pass</span>
+  },
+};
+
+<span class="keyword">export default function</span> () {
+  <span class="keyword">const</span> res = http.<span class="func">get</span>(<span class="string">'http://localhost:3000/films'</span>);
+
+  <span class="func">check</span>(res, {
+    <span class="string">'status is 200'</span>:      (r) => r.status === <span class="num">200</span>,
+    <span class="string">'has films data'</span>:     (r) => r.<span class="func">json</span>().data.length > <span class="num">0</span>,
+    <span class="string">'response &lt; 500ms'</span>:  (r) => r.timings.duration &lt; <span class="num">500</span>,
+  });
+}
+</code></pre>
+    </div>
+
+    <!-- Concept 5: Ramp-up -->
+    <h3>Concept 5: Ramp-up Stages (Realistic Load Patterns)</h3>
+    <div class="card">
+        <p>Real traffic doesn't jump from 0 to 40K instantly. Use stages to gradually increase load:</p>
+        <pre><code><span class="keyword">export const</span> options = {
+  stages: [
+    <span class="comment">// Warm-up: 0 → 500 users over 2 minutes</span>
+    { duration: <span class="string">'2m'</span>,  target: <span class="num">500</span> },
+
+    <span class="comment">// Ramp to steady: 500 → 5000 over 5 minutes</span>
+    { duration: <span class="string">'5m'</span>,  target: <span class="num">5000</span> },
+
+    <span class="comment">// Steady state: hold 5000 for 10 minutes</span>
+    { duration: <span class="string">'10m'</span>, target: <span class="num">5000</span> },
+
+    <span class="comment">// Spike: jump to 10000 for 3 minutes</span>
+    { duration: <span class="string">'3m'</span>,  target: <span class="num">10000</span> },
+
+    <span class="comment">// Cool down: back to 0 over 2 minutes</span>
+    { duration: <span class="string">'2m'</span>,  target: <span class="num">0</span> },
+  ],
+};
+</code></pre>
+        <p>This pattern reveals <strong>when</strong> degradation starts. Maybe 5K is fine but 8K causes p95 latency to spike — that's your real ceiling.</p>
+    </div>
+
+    <!-- Concept 6: Journey mixing -->
+    <h3>Concept 6: Mixing Multiple Journeys (Scenarios)</h3>
+    <div class="card">
+        <p>k6's <code>scenarios</code> feature runs different journey types simultaneously with different weights:</p>
+        <pre><code><span class="keyword">import</span> { browserJourney } <span class="keyword">from</span> <span class="string">'./journeys/browser.js'</span>;
+<span class="keyword">import</span> { bookerJourney } <span class="keyword">from</span> <span class="string">'./journeys/booker.js'</span>;
+<span class="keyword">import</span> { guestJourney } <span class="keyword">from</span> <span class="string">'./journeys/guest.js'</span>;
+<span class="keyword">import</span> { foodJourney } <span class="keyword">from</span> <span class="string">'./journeys/food.js'</span>;
+
+<span class="keyword">export const</span> options = {
+  scenarios: {
+    browsers: {
+      executor: <span class="string">'ramping-vus'</span>,
+      exec: <span class="string">'browserJourney'</span>,
+      stages: [
+        { duration: <span class="string">'5m'</span>,  target: <span class="num">20000</span> }, <span class="comment">// 50% of 40K</span>
+        { duration: <span class="string">'10m'</span>, target: <span class="num">20000</span> },
+        { duration: <span class="string">'2m'</span>,  target: <span class="num">0</span> },
+      ],
+    },
+    bookers: {
+      executor: <span class="string">'ramping-vus'</span>,
+      exec: <span class="string">'bookerJourney'</span>,
+      stages: [
+        { duration: <span class="string">'5m'</span>,  target: <span class="num">6000</span> }, <span class="comment">// 15% of 40K</span>
+        { duration: <span class="string">'10m'</span>, target: <span class="num">6000</span> },
+        { duration: <span class="string">'2m'</span>,  target: <span class="num">0</span> },
+      ],
+    },
+    guests: {
+      executor: <span class="string">'ramping-vus'</span>,
+      exec: <span class="string">'guestJourney'</span>,
+      stages: [
+        { duration: <span class="string">'5m'</span>,  target: <span class="num">6000</span> }, <span class="comment">// 15% of 40K</span>
+        { duration: <span class="string">'10m'</span>, target: <span class="num">6000</span> },
+        { duration: <span class="string">'2m'</span>,  target: <span class="num">0</span> },
+      ],
+    },
+    food_orderers: {
+      executor: <span class="string">'ramping-vus'</span>,
+      exec: <span class="string">'foodJourney'</span>,
+      stages: [
+        { duration: <span class="string">'5m'</span>,  target: <span class="num">4000</span> }, <span class="comment">// 10% of 40K</span>
+        { duration: <span class="string">'10m'</span>, target: <span class="num">4000</span> },
+        { duration: <span class="string">'2m'</span>,  target: <span class="num">0</span> },
+      ],
+    },
+  },
+};
+
+<span class="comment">// Export each journey as a named function</span>
+<span class="keyword">export</span> { browserJourney, bookerJourney, guestJourney, foodJourney };
+</code></pre>
+        <p>This runs all 4 journey types simultaneously on the same machine, each with its own VU pool and ramp-up pattern.</p>
+    </div>
+
+    <h3>How k6 Simulates Different Users from One Machine</h3>
+    <div class="callout callout-info">
+        <strong>Common question: "How can one laptop simulate 40K users?"</strong>
+        <p>k6 is compiled in Go and runs thousands of goroutines (lightweight threads). Each VU gets its own:</p>
+        <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+            <li><strong>TCP connection pool</strong> — separate HTTP connections to the server</li>
+            <li><strong>Cookie jar</strong> — isolated session state</li>
+            <li><strong>JavaScript context</strong> — separate variables and state</li>
+            <li><strong>Auth token</strong> — unique JWT obtained during login</li>
+        </ul>
+        <p style="margin-top: 0.75rem;">The server sees each VU as a completely separate client with its own IP source port. One machine can easily run 5,000-10,000 VUs. For 40K, use 4-5 machines with k6's distributed execution.</p>
+    </div>
+</section>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     8. EXECUTION PLAN                 ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section id="execution-plan">
+    <h2><span class="num">8</span> Execution Plan — From Zero to 40K</h2>
+
+    <div class="callout callout-success">
+        <strong>The Correct Order</strong>
+        <p>Scripts come first because they are infrastructure-independent. A k6 script is just a JavaScript file making HTTP calls to a URL. Write it today, point it at <code>localhost:3000</code>, run with 10 VUs for free.</p>
+    </div>
+
+    <div class="timeline">
+        <div class="timeline-item">
+            <h4>Step 1: Write k6 Scripts (Week 1-2)</h4>
+            <p><strong>Cost: $0</strong> — Pure code, no infrastructure.</p>
+            <ul style="margin-left: 1.5rem;">
+                <li>Create journey scripts for all 5 user types</li>
+                <li>Add response chaining, checks, thresholds</li>
+                <li>Parameterize BASE_URL (works against any environment)</li>
+                <li>Create test data generators (random film IDs, user phones)</li>
+            </ul>
+        </div>
+
+        <div class="timeline-item">
+            <h4>Step 2: Build Mock Server (Week 2-3)</h4>
+            <p><strong>Cost: $0</strong> — Express.js or Fastify app mimicking external APIs.</p>
+            <ul style="margin-left: 1.5rem;">
+                <li>Mock Vista endpoints (20 URL patterns)</li>
+                <li>Mock payment gateway endpoints (HyperPay, PayFort, Checkout.com, Tabby)</li>
+                <li>Mock Unifonic SMS (auto-return success for OTP)</li>
+                <li>Add configurable latency (simulate realistic Vista response times)</li>
+            </ul>
+        </div>
+
+        <div class="timeline-item">
+            <h4>Step 3: Local Docker Testing — Stage 0 (Week 3)</h4>
+            <p><strong>Cost: $0</strong> — All services running on local Docker Compose.</p>
+            <div class="table-wrap">
+                <table>
+                    <tr><th>Setting</th><th>Value</th></tr>
+                    <tr><td>Virtual Users</td><td>10-50</td></tr>
+                    <tr><td>Duration</td><td>2-5 minutes</td></tr>
+                    <tr><td>Purpose</td><td>Validate scripts work end-to-end</td></tr>
+                    <tr><td>External APIs</td><td>All pointed to mock server</td></tr>
+                    <tr><td>Infrastructure</td><td>docker-compose.yml (your laptop)</td></tr>
+                </table>
+            </div>
+            <pre><code><span class="comment"># Start all services locally</span>
+.\muvi-up.ps1 up
+
+<span class="comment"># Run k6 with 10 VUs against local</span>
+k6 run -e BASE_URL=http://localhost:3000 --vus 10 --duration 2m load-test.js</code></pre>
+        </div>
+
+        <div class="timeline-item">
+            <h4>Step 4: UAE UAT Testing — Stage 1 (Week 4)</h4>
+            <p><strong>Cost: ~$0</strong> — Uses already-running UAE UAT environment (me-central-1).</p>
+            <div class="table-wrap">
+                <table>
+                    <tr><th>Setting</th><th>Value</th></tr>
+                    <tr><td>Virtual Users</td><td>100-500</td></tr>
+                    <tr><td>Duration</td><td>10-15 minutes</td></tr>
+                    <tr><td>Purpose</td><td>Test with real AWS networking, RDS, ElastiCache</td></tr>
+                    <tr><td>Infrastructure</td><td>Existing UAE UAT (ECS Fargate, RDS, Redis)</td></tr>
+                </table>
+            </div>
+            <p><strong>Discoveries at this stage:</strong> Real DB connection pool limits, Redis latency over network, ECS task CPU throttling, ALB timeout settings.</p>
+        </div>
+
+        <div class="timeline-item">
+            <h4>Step 5: Stress Test — Stage 2 (Week 5-6)</h4>
+            <p><strong>Cost: ~$20-30/run</strong> — Temporary larger infrastructure for a few hours.</p>
+            <div class="table-wrap">
+                <table>
+                    <tr><th>Setting</th><th>Value</th></tr>
+                    <tr><td>Virtual Users</td><td>5,000-10,000</td></tr>
+                    <tr><td>Duration</td><td>20-30 minutes with ramp-up</td></tr>
+                    <tr><td>Purpose</td><td>Find real bottlenecks at scale</td></tr>
+                    <tr><td>k6 Machines</td><td>1-2 EC2 instances running k6</td></tr>
+                    <tr><td>Backend</td><td>Scaled UAT (more ECS tasks, bigger RDS)</td></tr>
+                </table>
+            </div>
+            <p><strong>Why 5K-10K is the sweet spot:</strong> Same architecture as production, just fewer replicas. Most bugs surface here — lock contention, memory leaks, connection exhaustion. Fix these first before spending on 40K.</p>
+        </div>
+
+        <div class="timeline-item">
+            <h4>Step 6: Full Scale — Stage 3 (Week 7-8)</h4>
+            <p><strong>Cost: ~$50-80/run</strong> — Production-matching infrastructure for a few hours.</p>
+            <div class="table-wrap">
+                <table>
+                    <tr><th>Setting</th><th>Value</th></tr>
+                    <tr><td>Virtual Users</td><td>40,000</td></tr>
+                    <tr><td>Duration</td><td>30 mins (ramp 5m + steady 20m + cool 5m)</td></tr>
+                    <tr><td>Purpose</td><td>Final validation — confirm 40K target capability</td></tr>
+                    <tr><td>k6 Machines</td><td>4-5 EC2 c5.xlarge instances (distributed k6)</td></tr>
+                    <tr><td>Backend</td><td>Production-matching (auto-scaled ECS, pre-warmed RDS)</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <h3>Cost Summary</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>Stage</th><th>Target</th><th>Infrastructure</th><th>Cost</th><th>Duration</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Stage 0: Local</strong></td><td>10-50 VUs</td><td>Docker Compose (your laptop)</td><td style="color: var(--green); font-weight: 700;">$0</td><td>Ongoing</td></tr>
+                <tr><td><strong>Stage 1: Smoke</strong></td><td>500 VUs</td><td>Existing UAE UAT</td><td style="color: var(--green); font-weight: 700;">~$0</td><td>1 day</td></tr>
+                <tr><td><strong>Stage 2: Stress</strong></td><td>5K-10K VUs</td><td>Scaled UAT + 1-2 k6 EC2s</td><td style="color: var(--yellow); font-weight: 700;">~$20-30</td><td>2-3 runs</td></tr>
+                <tr><td><strong>Stage 3: Peak</strong></td><td>40K VUs</td><td>Prod-matching + 4-5 k6 EC2s</td><td style="color: var(--orange); font-weight: 700;">~$50-80</td><td>1-2 runs</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout callout-info">
+        <strong>Why is it so cheap?</strong>
+        <p>All infrastructure is <strong>temporary</strong>. You spin up bigger ECS tasks and EC2 instances for 2-3 hours, run the test, save results, then tear everything down. AWS charges by the hour. A c5.xlarge EC2 costs ~$0.17/hour — 5 of them for 3 hours = $2.55 for the k6 runners alone. The "expensive" part is scaling RDS and ECS, but even that is just a few hours of larger instances.</p>
+    </div>
+</section>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     9. MONITORING                     ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section id="monitoring">
+    <h2><span class="num">9</span> Monitoring During Load Tests</h2>
+
+    <p>Running a load test without monitoring is like driving blindfolded. You need real-time visibility into every layer.</p>
+
+    <h3>What to Monitor</h3>
+    <div class="card-grid">
+        <div class="card">
+            <h4 style="color: var(--accent);">📊 k6 Output Metrics</h4>
+            <ul style="margin-left: 1rem;">
+                <li><code>http_req_duration</code> — Request latency (p50, p90, p95, p99)</li>
+                <li><code>http_req_failed</code> — Error rate</li>
+                <li><code>http_reqs</code> — Requests per second (throughput)</li>
+                <li><code>vus</code> — Active virtual users</li>
+                <li><code>iteration_duration</code> — Full journey time</li>
+                <li><code>checks</code> — Assertion pass rate</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4 style="color: var(--yellow);">🗄️ PostgreSQL Metrics</h4>
+            <ul style="margin-left: 1rem;">
+                <li><code>active_connections</code> — vs max_connections limit</li>
+                <li><code>lock_waits</code> — Row/table lock contention</li>
+                <li><code>query_duration</code> — Slow queries under load</li>
+                <li><code>dead_tuples</code> — Autovacuum pressure</li>
+                <li><code>CPU/Memory</code> — RDS instance utilization</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4 style="color: var(--red);">🔴 Redis Metrics</h4>
+            <ul style="margin-left: 1rem;">
+                <li><code>used_memory</code> — Memory usage vs maxmemory</li>
+                <li><code>connected_clients</code> — Connection count</li>
+                <li><code>keyspace_hits/misses</code> — Cache hit ratio</li>
+                <li><code>queue_depth</code> — Bull queue backlog</li>
+                <li><code>pub/sub channels</code> — Payment event throughput</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4 style="color: var(--green);">🐳 ECS/Fargate Metrics</h4>
+            <ul style="margin-left: 1rem;">
+                <li><code>CPU Utilization</code> — Per task (should stay < 80%)</li>
+                <li><code>Memory Utilization</code> — Watch for OOM kills</li>
+                <li><code>Task Count</code> — Auto-scaling in/out</li>
+                <li><code>Health Check Failures</code> — Crashing services</li>
+                <li><code>Network I/O</code> — Bandwidth saturation</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4 style="color: var(--pink);">⚡ Application Metrics</h4>
+            <ul style="margin-left: 1rem;">
+                <li>gRPC channel utilization</li>
+                <li>Sequelize connection pool usage</li>
+                <li>Bull queue processing rate vs arrival rate</li>
+                <li>JWT validation time</li>
+                <li>Vista mock response time simulation</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h4 style="color: var(--cyan);">🌐 Network/ALB Metrics</h4>
+            <ul style="margin-left: 1rem;">
+                <li><code>ALB RequestCount</code> — Total throughput</li>
+                <li><code>ALB TargetResponseTime</code> — Backend latency</li>
+                <li><code>ALB 5xx/4xx Count</code> — Error types</li>
+                <li><code>ActiveConnectionCount</code> — Concurrent connections</li>
+                <li><code>SurgeQueueLength</code> — Overflow queue</li>
+            </ul>
+        </div>
+    </div>
+
+    <h3>k6 Output to Dashboard</h3>
+    <div class="card">
+        <p>k6 can stream metrics in real-time to multiple backends:</p>
+        <pre><code><span class="comment"># Stream to InfluxDB + Grafana (recommended)</span>
+k6 run --out influxdb=http://influxdb:8086/k6 load-test.js
+
+<span class="comment"># Stream to Grafana Cloud (k6 Cloud)</span>
+K6_CLOUD_TOKEN=your_token k6 run --out cloud load-test.js
+
+<span class="comment"># Output to CSV for post-analysis</span>
+k6 run --out csv=results.csv load-test.js
+
+<span class="comment"># JSON output for custom processing</span>
+k6 run --out json=results.json load-test.js</code></pre>
+    </div>
+
+    <h3>Recommended Dashboard Stack</h3>
+    <div class="flow">
+        <span class="flow-step">k6 metrics</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">InfluxDB / Prometheus</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">Grafana Dashboards</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">Real-time Visualization</span>
+    </div>
+    <div class="flow" style="margin-top: 0.5rem;">
+        <span class="flow-step">AWS CloudWatch</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">RDS, ElastiCache, ECS metrics</span>
+        <span class="flow-arrow">→</span>
+        <span class="flow-step">Grafana (via CloudWatch data source)</span>
+    </div>
+</section>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     10. INFRASTRUCTURE                ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section id="infrastructure">
+    <h2><span class="num">10</span> Infrastructure Sizing</h2>
+
+    <h3>Current vs Required (Per Service)</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>Service</th><th>UAT Now</th><th>Stage 2 (10K)</th><th>Stage 3 (40K)</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Gateway</strong></td><td>1-2 tasks (0.5vCPU, 1GB)</td><td>4-6 tasks (1vCPU, 2GB)</td><td>12-16 tasks (2vCPU, 4GB)</td></tr>
+                <tr><td><strong>Identity</strong></td><td>1 task</td><td>2-3 tasks</td><td>4-6 tasks</td></tr>
+                <tr><td><strong>Main</strong></td><td>1-2 tasks</td><td>4-6 tasks</td><td>10-14 tasks</td></tr>
+                <tr><td><strong>Payment</strong></td><td>1 task</td><td>2-3 tasks</td><td>4-6 tasks</td></tr>
+                <tr><td><strong>F&B</strong></td><td>1 task</td><td>1-2 tasks</td><td>3-4 tasks</td></tr>
+                <tr><td><strong>Notification</strong></td><td>1 task</td><td>1-2 tasks</td><td>2-3 tasks</td></tr>
+                <tr><td><strong>Offer (Go)</strong></td><td>1 task</td><td>1-2 tasks</td><td>2-3 tasks</td></tr>
+                <tr><td><strong>PostgreSQL</strong></td><td>db.t3.medium</td><td>db.r6g.large</td><td>db.r6g.xlarge</td></tr>
+                <tr><td><strong>Redis</strong></td><td>cache.t3.small</td><td>cache.r6g.large</td><td>cache.r6g.xlarge</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="callout callout-warning">
+        <strong>Important: "Smaller Scale" = Same Architecture, Fewer Replicas</strong>
+        <p>Stage 2 (5K-10K users) uses the <strong>exact same architecture</strong> as production — ECS Fargate, RDS, ElastiCache. Just fewer task replicas and smaller instance sizes. The bugs you find at 10K will be the <em>same architectural bugs</em> you'd hit at 40K. This is why you don't need to immediately jump to full-scale testing.</p>
+    </div>
+
+    <h3>k6 Load Generator Machines</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>Stage</th><th>VUs</th><th>k6 Machines</th><th>Instance Type</th><th>Cost/Hour</th></tr>
+            </thead>
+            <tbody>
+                <tr><td>Stage 0</td><td>50</td><td>Your laptop</td><td>—</td><td>$0</td></tr>
+                <tr><td>Stage 1</td><td>500</td><td>Your laptop</td><td>—</td><td>$0</td></tr>
+                <tr><td>Stage 2</td><td>10,000</td><td>1-2 EC2 instances</td><td>c5.xlarge (4vCPU, 8GB)</td><td>~$0.34/hr total</td></tr>
+                <tr><td>Stage 3</td><td>40,000</td><td>4-5 EC2 instances</td><td>c5.xlarge (4vCPU, 8GB)</td><td>~$0.85/hr total</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Rate Limiting Adjustments</h3>
+    <div class="card">
+        <p>The Gateway implements rate limiting that will block load test traffic:</p>
+        <ul style="margin: 0.5rem 0 0 1.5rem;">
+            <li><strong>Default:</strong> 100 requests / 60 seconds per IP</li>
+            <li><strong>Orders:</strong> 5 requests / 60 seconds per IP</li>
+            <li><strong>OTP:</strong> Rate-limited per phone number</li>
+        </ul>
+        <p style="margin-top: 0.75rem;"><strong>Solution:</strong> For load test environment, either:</p>
+        <ol style="margin: 0.25rem 0 0 1.5rem;">
+            <li>Increase rate limits significantly (e.g., 100,000 req/60s)</li>
+            <li>Whitelist the load generator IPs</li>
+            <li>Disable rate limiting entirely (recommended for simplicity)</li>
+        </ol>
+        <p style="margin-top: 0.5rem;"><strong>Note:</strong> The <code>ThrottlerBehindProxyGuard</code> is used on <code>POST /orders</code>, <code>POST /orders/:id/seats</code>, and <code>POST /auth/send-otp</code>. These are the most rate-limited endpoints.</p>
+    </div>
+</section>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     11. API REFERENCE                 ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section id="api-reference">
+    <h2><span class="num">11</span> API Reference — Endpoint Inventory</h2>
+
+    <p>Complete inventory of all 481 API endpoints grouped by domain. Endpoints marked <span class="tag tag-critical">LOAD TEST</span> are included in the k6 journey scripts.</p>
+
+    <h3>Endpoint Summary by Domain</h3>
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr><th>Domain</th><th>Controllers</th><th>Endpoints</th><th>Auth Types</th></tr>
+            </thead>
+            <tbody>
+                <tr><td><strong>Auth / Identity</strong></td><td>22</td><td>~95</td><td>AuthGuard, RefreshAuthGuard, ResetPasswordAuthGuard</td></tr>
+                <tr><td><strong>Film / Cinema / Session</strong></td><td>16</td><td>~105</td><td>OptionalAuthGuard, OptionalKioskGuard</td></tr>
+                <tr><td><strong>Order / Booking</strong></td><td>12</td><td>~75</td><td>AuthGuard, GuestGuard, KioskGuard, ThrottlerGuard</td></tr>
+                <tr><td><strong>Payment</strong></td><td>9</td><td>~32</td><td>AuthGuard, GuestGuard, VerifyUserGuard</td></tr>
+                <tr><td><strong>F&B / Food</strong></td><td>15</td><td>~85</td><td>KioskGuard, AuthGuard</td></tr>
+                <tr><td><strong>Notification</strong></td><td>3</td><td>~10</td><td>AuthGuard, AWSAuthGuard</td></tr>
+                <tr><td><strong>Offer</strong></td><td>4</td><td>~20</td><td>None (public), AuthGuard (CMS)</td></tr>
+                <tr><td><strong>CMS / System</strong></td><td>5</td><td>~16</td><td>AWSAuthGuard, TestMoodGuard</td></tr>
+                <tr><td><strong>Total</strong></td><td><strong>93</strong></td><td><strong>~438</strong></td><td><strong>12 guard types</strong></td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Guard Types Reference</h3>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Guard</th><th>Purpose</th><th>Load Test Handling</th></tr></thead>
+            <tbody>
+                <tr><td><code>AuthGuard</code></td><td>JWT authentication</td><td>Pre-generate tokens in setup()</td></tr>
+                <tr><td><code>OptionalAuthGuard</code></td><td>Passes if no token, enriches if present</td><td>Send with/without token to test both paths</td></tr>
+                <tr><td><code>KioskGuard</code></td><td>Kiosk device token</td><td>Generate kiosk tokens via /kiosks/setup</td></tr>
+                <tr><td><code>GuestGuard</code></td><td>Guest session token</td><td>Create guest via POST /guest-users</td></tr>
+                <tr><td><code>ThrottlerBehindProxyGuard</code></td><td>Rate limiting (5 req/60s for orders)</td><td>Disable or increase limit significantly</td></tr>
+                <tr><td><code>AWSAuthGuard</code></td><td>AWS EventBridge auth</td><td>Not needed for user journeys (cron only)</td></tr>
+                <tr><td><code>RefreshAuthGuard</code></td><td>Refresh token validation</td><td>Use in token refresh cycle</td></tr>
+                <tr><td><code>VerifyUserGuard</code></td><td>Verified user (phone confirmed)</td><td>Ensure test users are verified</td></tr>
+                <tr><td><code>ApiKeyAuthGuard</code></td><td>API key authentication</td><td>Not needed for user journeys</td></tr>
+                <tr><td><code>TestMoodGuard</code></td><td>Test/dev mode only</td><td>Can use to seed test data</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Key Public Endpoints (Used in Browser Journey)</h3>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Method</th><th>Endpoint</th><th>Purpose</th><th>Expected Load</th></tr></thead>
+            <tbody>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/heartbeat</code></td><td>Health check</td><td>Every ALB check (every 30s)</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/cities</code></td><td>List cities</td><td>Every app launch</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/banners</code></td><td>Homepage banners</td><td>Every app launch</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/films</code></td><td>Film listing</td><td>Heaviest — called by 50% of all users</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/films/:id</code></td><td>Film detail</td><td>High — every user who taps a film</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/films/:id/cinemas</code></td><td>Cinemas for film</td><td>High</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/showtimes</code></td><td>Sessions</td><td>High</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/showtimes/:id/seats</code></td><td>Seat map</td><td>Medium — pre-booking</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/cinemas</code></td><td>Cinema listing</td><td>Medium</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/experiences</code></td><td>IMAX, 4DX, etc.</td><td>Low-Medium</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/film-finder</code></td><td>Search/filter</td><td>Medium</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/offers</code></td><td>Active promotions</td><td>Medium</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/food-menu</code></td><td>Food menu</td><td>Low-Medium</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Key Booking Endpoints (Used in Booker Journey)</h3>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>Method</th><th>Endpoint</th><th>Purpose</th><th>Vista Call</th><th>Rate Limit</th></tr></thead>
+            <tbody>
+                <tr><td><span class="method-badge method-post">POST</span></td><td><code>/auth/send-otp</code></td><td>Request OTP</td><td>—</td><td>ThrottlerGuard</td></tr>
+                <tr><td><span class="method-badge method-post">POST</span></td><td><code>/auth/verify-otp</code></td><td>Verify & get JWT</td><td>Vista loyalty validate</td><td>—</td></tr>
+                <tr><td><span class="method-badge method-post">POST</span></td><td><code>/orders</code></td><td>Initialize order</td><td>POST /orders/</td><td>ThrottlerGuard (5/60s)</td></tr>
+                <tr><td><span class="method-badge method-post">POST</span></td><td><code>/orders/:id/seats</code></td><td>Reserve seats</td><td>POST /orders/{sid}/set-tickets/</td><td>ThrottlerGuard</td></tr>
+                <tr><td><span class="method-badge method-post">POST</span></td><td><code>/orders/:id/pay</code></td><td>Process payment</td><td>POST /order/payment + Gateway</td><td>—</td></tr>
+                <tr><td><span class="method-badge method-get">GET</span></td><td><code>/orders/:id</code></td><td>Booking confirmation</td><td>—</td><td>—</td></tr>
+                <tr><td><span class="method-badge method-post">POST</span></td><td><code>/orders/:id/cancel</code></td><td>Cancel booking</td><td>Vista cancel + refund</td><td>—</td></tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     12. FAQ                            ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section id="faq">
+    <h2><span class="num">12</span> Frequently Asked Questions</h2>
+
+    <p style="margin-bottom: 1.5rem;">These questions came up during the load testing strategy discussion and represent the key concerns anyone would have:</p>
+
+    <h3>Fundamentals</h3>
+
+    <details>
+        <summary>How do we simulate 40,000 users? We don't have 40,000 laptops.</summary>
+        <div class="answer">
+            <p>You don't need 40,000 laptops. A <strong>load testing tool</strong> (k6 in our case) runs on a single machine and opens thousands of parallel HTTP connections, each acting as a separate user.</p>
+            <p>k6 is written in Go, which uses lightweight goroutines (not OS threads). One modern laptop can simulate <strong>5,000-10,000 concurrent users</strong>. For 40K, you use 4-5 machines running k6 in distributed mode.</p>
+            <p>Each "virtual user" (VU) has its own TCP connection, cookie jar, authentication token, and request state. The server sees each VU as a completely independent client — it cannot tell the difference between a VU and a real person's phone.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>If one server handles 1,000 users, can't we just calculate 40 servers for 40K?</summary>
+        <div class="answer">
+            <p><strong>No.</strong> This is the most dangerous assumption in capacity planning. Bottlenecks are <strong>non-linear</strong>. Here's why the math doesn't work:</p>
+            <ul style="margin-left: 1.5rem;">
+                <li><strong>Database locks:</strong> At 1K users, seat reservation rarely has contention. At 10K users trying to book the same showtime, PostgreSQL row locks create a bottleneck queue that grows exponentially.</li>
+                <li><strong>Connection pools:</strong> PostgreSQL has a hard max_connections limit (typically 100-200). You can't just add more app servers — they all compete for the same DB connections.</li>
+                <li><strong>Memory fragmentation:</strong> Node.js garbage collection pauses increase non-linearly with heap size. A service running fine at 1GB might cause GC pauses at 4GB.</li>
+                <li><strong>Network saturation:</strong> Redis runs on a single thread. No matter how many app servers you add, one Redis instance has a throughput ceiling.</li>
+            </ul>
+            <p>The only way to find your actual limit is to <strong>test it</strong> and observe where each layer breaks.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>What does "smaller scale" testing mean? Isn't the whole point to test at 40K?</summary>
+        <div class="answer">
+            <p>"Smaller scale" means the <strong>exact same architecture</strong> as production — same microservices, same databases, same gRPC communication — but with fewer replicas of each service and smaller instance sizes.</p>
+            <p>Think of it like a stress test for a bridge. You don't need to put 40,000 cars on it to find a weak weld — you can find structural weaknesses with 5,000 cars first. Fix those, then scale up.</p>
+            <p>At 5K-10K users, you'll discover:</p>
+            <ul style="margin-left: 1.5rem;">
+                <li>Database connection pool exhaustion (same bug at any scale)</li>
+                <li>N+1 query patterns that become visible under load</li>
+                <li>Memory leaks that accumulate over time</li>
+                <li>gRPC channel saturation between services</li>
+                <li>Redis cache eviction patterns</li>
+            </ul>
+            <p>These are the <strong>same bugs</strong> that would crash you at 40K. Fix them at 10K (where debugging is easier), then validate at 40K.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>Why 5K-10K? Why not 500 or 20K for the "smaller" test?</summary>
+        <div class="answer">
+            <p><strong>500 users</strong> is too few — most systems handle 500 without breaking a sweat. You're unlikely to surface contention bugs, pool exhaustion, or memory pressure. It's useful for script validation only (Stage 1).</p>
+            <p><strong>20K users</strong> requires near-production infrastructure, which costs more and is harder to debug when things go wrong. If you find a bug at 20K, you need to scale back to reproduce and fix it anyway.</p>
+            <p><strong>5K-10K is the sweet spot</strong> because:</p>
+            <ul style="margin-left: 1.5rem;">
+                <li>Enough load to surface real architectural bottlenecks</li>
+                <li>Small enough infrastructure to be cheap (~$20-30/run)</li>
+                <li>Easy to reproduce failures for debugging</li>
+                <li>Fast iteration — fix a bug, re-run in 30 minutes</li>
+            </ul>
+        </div>
+    </details>
+
+    <h3>Scripts &amp; Implementation</h3>
+
+    <details>
+        <summary>Should we write scripts before or after setting up infrastructure?</summary>
+        <div class="answer">
+            <p><strong>Scripts FIRST. Always.</strong> k6 scripts are infrastructure-independent — they're JavaScript files that make HTTP requests to a URL. The URL can be <code>http://localhost:3000</code> (your laptop) or <code>https://uat-api.muvicinemas.com</code> (AWS). The script doesn't change.</p>
+            <p>Correct order:</p>
+            <ol style="margin-left: 1.5rem;">
+                <li><strong>k6 scripts</strong> (just JavaScript files — $0)</li>
+                <li><strong>Mock servers</strong> (Express app for Vista/payment mocks — $0)</li>
+                <li><strong>Local Docker test</strong> (validate scripts work — $0)</li>
+                <li><strong>UAE UAT test</strong> (500 users, already running — ~$0)</li>
+                <li><strong>AWS infra plan</strong> (only when UAT is maxed out)</li>
+                <li><strong>Provision bigger infra</strong> (5K-10K users — ~$20-30)</li>
+                <li><strong>Full scale</strong> (40K users — ~$50-80)</li>
+            </ol>
+        </div>
+    </details>
+
+    <details>
+        <summary>How does k6 simulate "different" users from one machine? Aren't they all the same?</summary>
+        <div class="answer">
+            <p>Each VU (virtual user) is genuinely independent:</p>
+            <ul style="margin-left: 1.5rem;">
+                <li><strong>Different TCP connections:</strong> Each VU opens its own HTTP connections with unique source ports. The server sees each as a separate client.</li>
+                <li><strong>Different auth tokens:</strong> Each VU authenticates separately and gets a unique JWT token, so the server sees each as a different logged-in user.</li>
+                <li><strong>Different test data:</strong> Using <code>__VU</code> (a built-in number), each VU can use different phone numbers, select different films, choose different seats.</li>
+                <li><strong>Independent state:</strong> Each VU has its own JavaScript context — variables, cookies, and session state are isolated.</li>
+            </ul>
+            <p>The server legitimately cannot tell the difference between 1,000 VUs from one machine and 1,000 real users on 1,000 phones. The only difference is the source IP address (which matters for rate limiting — see the rate limiting section).</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>What is "think time" and why is it important?</summary>
+        <div class="answer">
+            <p>Think time is the pause between requests that simulates a real user reading a page, scrolling, or deciding what to click. In k6, it's implemented with <code>sleep()</code>.</p>
+            <p><strong>Without think time:</strong> Each VU fires requests as fast as possible. 100 VUs might generate 10,000 req/s — unrealistic, because no human clicks that fast.</p>
+            <p><strong>With think time:</strong> Each VU waits 2-5 seconds between requests. 100 VUs with 3s average think time = ~33 req/s — much more realistic.</p>
+            <p>Think time dramatically changes your load profile. With 2s think time, you need <strong>10x more VUs</strong> to achieve the same request rate as without think time. This is the realistic user simulation.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>What happens with rate limiting during the load test? All traffic comes from one IP.</summary>
+        <div class="answer">
+            <p>This is a real problem. The Gateway has rate limits:</p>
+            <ul style="margin-left: 1.5rem;">
+                <li>Default: 100 requests/60s per IP</li>
+                <li>Orders: 5 requests/60s per IP</li>
+            </ul>
+            <p>With all k6 traffic from one IP (or 4-5 IPs in distributed mode), you'd hit the limit in seconds. Solutions:</p>
+            <ol style="margin-left: 1.5rem;">
+                <li><strong>Best:</strong> Disable rate limiting in the load test environment entirely (<code>RATE_LIMIT_ENABLED=false</code>)</li>
+                <li><strong>Alternative:</strong> Set very high limits (1,000,000 req/60s) for the load test environment</li>
+                <li><strong>Alternative:</strong> Whitelist load generator IPs in the throttler configuration</li>
+            </ol>
+            <p>Kiosk platform already bypasses rate limiting in production, so the kiosk guard path doesn't have this issue.</p>
+        </div>
+    </details>
+
+    <h3>Mocking &amp; External Services</h3>
+
+    <details>
+        <summary>Why can't we just use Vista's test environment instead of mocking?</summary>
+        <div class="answer">
+            <p>Vista's test environment is designed for functional testing with a few concurrent users, not load testing with thousands. Hitting Vista's test server with 6,000 concurrent booking requests would:</p>
+            <ul style="margin-left: 1.5rem;">
+                <li><strong>Overwhelm their test server</strong> — causing it to slow down or crash, affecting other integrators too</li>
+                <li><strong>Create thousands of fake bookings</strong> — that would need manual cleanup in their system</li>
+                <li><strong>Get you rate-limited or blocked</strong> — Vista would see it as an attack</li>
+                <li><strong>Make your test results unreliable</strong> — you'd be measuring Vista's test server performance, not yours</li>
+            </ul>
+            <p>A local mock server with configurable latency (say 200-500ms to simulate real Vista response times) gives you <strong>control and repeatability</strong>.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>Won't mock servers make the test unrealistic?</summary>
+        <div class="answer">
+            <p>The goal is to test <strong>your system's</strong> performance, not Vista's or HyperPay's. Mock servers should:</p>
+            <ul style="margin-left: 1.5rem;">
+                <li><strong>Return realistic response bodies</strong> — same JSON structure as the real API</li>
+                <li><strong>Simulate realistic latency</strong> — add 200-500ms delay (mimicking real Vista response time)</li>
+                <li><strong>Return realistic errors</strong> — 5% of requests return errors to test error handling paths</li>
+            </ul>
+            <p>With URL-swap mocking (Option A), your services still make real HTTP calls, serialize/deserialize JSON, handle network timeouts, and process the responses. The only thing that changes is the destination server. This tests 95% of the real code path.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>How many external endpoints need mocking in total?</summary>
+        <div class="answer">
+            <p>Based on our full codebase analysis:</p>
+            <ul style="margin-left: 1.5rem;">
+                <li><strong>Vista Entertainment:</strong> ~20 unique URL patterns across Main, Identity, and F&B services</li>
+                <li><strong>HyperPay:</strong> 4 URL patterns (checkouts, registrations/payments, payments, payments/{id})</li>
+                <li><strong>PayFort:</strong> 1 URL with 4 commands (PURCHASE, REFUND, CHECK_STATUS, UPDATE_TOKEN)</li>
+                <li><strong>Checkout.com:</strong> 6 resource paths (via SDK → payments, tokens, customers, instruments, paymentContexts, workflows)</li>
+                <li><strong>Tabby:</strong> 3 URL patterns (checkout, payments/{id}, payments/{id}/captures+refunds)</li>
+                <li><strong>Unifonic SMS:</strong> 2 URL patterns (verifications/start, verifications/check)</li>
+                <li><strong>Taqnyat SMS:</strong> 1 URL pattern (verify.php)</li>
+            </ul>
+            <p><strong>Total: ~37 unique URL patterns</strong> across 7 external systems. Low-priority systems (OneSignal, Braze, SendGrid, Avius) can be disabled rather than mocked.</p>
+        </div>
+    </details>
+
+    <h3>Cost &amp; Logistics</h3>
+
+    <details>
+        <summary>How much does load testing actually cost?</summary>
+        <div class="answer">
+            <p>Very little, because everything is temporary:</p>
+            <ul style="margin-left: 1.5rem;">
+                <li><strong>Scripts + mock server:</strong> $0 (just code on your laptop)</li>
+                <li><strong>Local Docker testing:</strong> $0</li>
+                <li><strong>UAE UAT testing (500 users):</strong> ~$0 (already running)</li>
+                <li><strong>5K-10K stress test:</strong> ~$20-30 per run (scaled infra for 2-3 hours)</li>
+                <li><strong>40K full test:</strong> ~$50-80 per run (prod-matching infra for 2-3 hours)</li>
+            </ul>
+            <p>You'll likely need 3-5 runs of Stage 2 (fix bugs between runs) and 1-2 runs of Stage 3. Total budget: <strong>~$200-400</strong> for the entire load testing project.</p>
+            <p>Compare this to the cost of a production outage during a blockbuster opening weekend...</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>How long does the entire load testing project take?</summary>
+        <div class="answer">
+            <p>Roughly 6-8 weeks total, with work parallelized:</p>
+            <div style="margin-top: 0.5rem;">
+                <table style="width: 100%; font-size: 0.85rem;">
+                    <tr><td>Week 1-2:</td><td>Write k6 scripts + mock server</td></tr>
+                    <tr><td>Week 3:</td><td>Local Docker testing + bug fixes</td></tr>
+                    <tr><td>Week 4:</td><td>UAE UAT testing (500 users) + tune scripts</td></tr>
+                    <tr><td>Week 5-6:</td><td>Stage 2 (5K-10K) - multiple runs, fix bottlenecks</td></tr>
+                    <tr><td>Week 7-8:</td><td>Stage 3 (40K) - final validation, performance report</td></tr>
+                </table>
+            </div>
+            <p style="margin-top: 0.5rem;">This assumes one engineer working on it primarily. Scripts and mock server can be worked on in parallel.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>Can we run load tests against production?</summary>
+        <div class="answer">
+            <p><strong>Never run load tests against production.</strong> Instead:</p>
+            <ul style="margin-left: 1.5rem;">
+                <li>Use a separate environment with production-matching architecture</li>
+                <li>Populate it with production-like data (anonymized if needed)</li>
+                <li>Point external URLs at mock servers</li>
+                <li>Scale the environment to match production's ECS/RDS/Redis configuration</li>
+            </ul>
+            <p>Running load tests against production would create real bookings, process real payments, and send thousands of real OTP messages and emails. It would also affect real users currently using the platform.</p>
+        </div>
+    </details>
+
+    <details>
+        <summary>What about the two UAT environments? Which one do we use?</summary>
+        <div class="answer">
+            <p>Muvi has two UAT environments:</p>
+            <ul style="margin-left: 1.5rem;">
+                <li><strong>UAE UAT (me-central-1):</strong> Your team's environment — full control. <strong>Use this for load testing.</strong></li>
+                <li><strong>Frankfurt UAT (eu-central-1):</strong> Previous vendor's environment — may have different configurations.</li>
+            </ul>
+            <p>Start with UAE UAT for Stage 1 (500 users). For Stage 2+, scale up the UAE UAT infrastructure temporarily, run the test, then scale back down.</p>
+        </div>
+    </details>
+
+    <h3>Results &amp; Analysis</h3>
+
+    <details>
+        <summary>What does success look like? What metrics define "passed"?</summary>
+        <div class="answer">
+            <p>Define your SLA thresholds before testing:</p>
+            <table style="width: 100%; font-size: 0.85rem; margin-top: 0.5rem;">
+                <tr><th>Metric</th><th>Target</th><th>Critical Threshold</th></tr>
+                <tr><td>p95 response time (browsing)</td><td>&lt; 500ms</td><td>&lt; 2000ms</td></tr>
+                <tr><td>p95 response time (booking)</td><td>&lt; 2000ms</td><td>&lt; 5000ms</td></tr>
+                <tr><td>Error rate</td><td>&lt; 0.1%</td><td>&lt; 1%</td></tr>
+                <tr><td>Requests/second (40K VUs)</td><td>&gt; 5000 r/s</td><td>&gt; 2000 r/s</td></tr>
+                <tr><td>Full booking journey time</td><td>&lt; 30s</td><td>&lt; 60s</td></tr>
+                <tr><td>Payment success rate</td><td>&gt; 99.5%</td><td>&gt; 98%</td></tr>
+            </table>
+        </div>
+    </details>
+
+    <details>
+        <summary>What are the most likely bottlenecks we'll find?</summary>
+        <div class="answer">
+            <p>Based on the codebase analysis, here are the most likely bottlenecks in order of probability:</p>
+            <ol style="margin-left: 1.5rem;">
+                <li><strong>PostgreSQL connection pool exhaustion</strong> — 6 services all competing for DB connections. Default Sequelize pool is 5 connections.</li>
+                <li><strong>Seat locking contention in Main service</strong> — Multiple users booking the same showtime creates row-level lock waits in PostgreSQL.</li>
+                <li><strong>order.service.ts sequential awaits</strong> — Lines 708, 2115, 2162 have sequential await patterns that could be parallelized.</li>
+                <li><strong>Vista response time amplification</strong> — Every booking requires 3+ sequential Vista calls. If Vista goes from 200ms → 500ms, the booking flow goes from 600ms → 1500ms.</li>
+                <li><strong>Gateway gRPC channel exhaustion</strong> — All traffic funnels through the Gateway's gRPC channels to backend services.</li>
+                <li><strong>Redis memory pressure</strong> — Rate limiting, sessions, cache, and Bull queues all compete for Redis memory.</li>
+                <li><strong>ECS task OOM kills</strong> — Node.js heap growing too large under sustained load causes out-of-memory container kills.</li>
+            </ol>
+        </div>
+    </details>
+
+    <details>
+        <summary>What happens if we discover the system can only handle 15K, not 40K?</summary>
+        <div class="answer">
+            <p>This is actually a great outcome — you discovered your real limit <em>before</em> a blockbuster release crashed the platform. From here:</p>
+            <ol style="margin-left: 1.5rem;">
+                <li><strong>Identify the bottleneck</strong> — Is it DB connections? Redis? A specific service? Vista response time?</li>
+                <li><strong>Optimize code</strong> — Fix sequential awaits, add caching, optimize queries. This often gives 2-3x improvement for free.</li>
+                <li><strong>Scale infrastructure</strong> — Bigger RDS instances, more ECS tasks, Redis cluster mode. This gives another 2-3x.</li>
+                <li><strong>Architectural changes</strong> — Connection pooling (pgBouncer), read replicas, caching layers. For long-term 40K+ capability.</li>
+                <li><strong>Re-test</strong> — Run the load test again to verify improvements.</li>
+            </ol>
+            <p>Most systems go through 3-5 rounds of "test → find bottleneck → fix → re-test" before reaching their target.</p>
+        </div>
+    </details>
+</section>
+
+<!-- ╔═══════════════════════════════════════╗ -->
+<!-- ║     FOOTER                            ║ -->
+<!-- ╚═══════════════════════════════════════╝ -->
+<section style="margin-top: 4rem; padding-top: 2rem; border-top: 1px solid var(--border);">
+    <div style="text-align: center; color: var(--text-muted);">
+        <p style="font-size: 0.9rem;">Muvi Cinemas — Load Testing Strategy Document</p>
+        <p style="font-size: 0.8rem;">Generated from full codebase analysis of 93 controllers, 481 endpoints, and 13 external integrations.</p>
+        <p style="font-size: 0.75rem; margin-top: 0.5rem;">June 2025</p>
+    </div>
+</section>
+
+</div><!-- .container -->
+
+<script>
+// Smooth scroll for nav links
+document.querySelectorAll('nav a').forEach(a => {
+    a.addEventListener('click', e => {
+        e.preventDefault();
+        const target = document.querySelector(a.getAttribute('href'));
+        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+});
+
+// Highlight active nav on scroll
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('nav a');
+window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(s => {
+        if (window.scrollY >= s.offsetTop - 100) current = s.id;
+    });
+    navLinks.forEach(l => {
+        l.style.color = l.getAttribute('href') === '#' + current ? '#38bdf8' : '';
+        l.style.borderBottomColor = l.getAttribute('href') === '#' + current ? '#38bdf8' : 'transparent';
+    });
+});
+</script>
+</body>
+</html>
