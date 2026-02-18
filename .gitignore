@@ -20,5 +20,8 @@ Thumbs.db
 # IDE
 .idea/
 
+# Personal AI context files (each dev has their own)
+.github/*.local.md
+
 # Node
 node_modules/
